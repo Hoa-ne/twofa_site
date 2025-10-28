@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ thread.title }}</h2>
+{% for p in posts %}
+  <article class="post-box">
+    <b>{{ p.author.username }}</b> | {{ p.created_at }}<br>
+    <p>{{ p.content|linebreaks }}</p>
+  </article>
+{% endfor %}
+
+{% if user.is_authenticated %}
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">Trả lời</button>
+</form>
+{% else %}
+<p>Bạn cần <a href="{% url 'accounts:login' %}">đăng nhập</a> để trả lời.</p>
+{% endif %}
+{% endblock %}

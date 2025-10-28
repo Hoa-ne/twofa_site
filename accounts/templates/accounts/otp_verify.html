@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Nhập mã OTP</h2>
+<p>Xin chào {{ username }}, hãy mở Google Authenticator và nhập mã 6 số.</p>
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">Xác thực</button>
+</form>
+{% endblock %}

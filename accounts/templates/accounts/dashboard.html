@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Dashboard</h2>
+<p>Xin chào {{ user.username }} (role: {{ user.role }})</p>
+<p>Email verified: {{ user.email_verified }} | 2FA: {{ user.is_2fa_enabled }}</p>
+<p><a href="{% url 'forum:thread_create' %}">Tạo thread mới</a></p>
+<p><a href="{% url 'accounts:enable_2fa' %}">Cấu hình / xem trạng thái 2FA</a></p>
+{% if staff %}
+<p>Chức năng staff-only test</p>
+{% endif %}
+{% endblock %}

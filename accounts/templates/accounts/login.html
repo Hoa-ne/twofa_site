@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Đăng nhập | TwoFA{% endblock %}
+
+{% block content %}
+<div class="glass-card">
+    <div class="card-header">Đăng nhập</div>
+    <div class="card-desc">
+        Vui lòng nhập tài khoản và mật khẩu.
+        Nếu tài khoản đã bật 2FA, hệ thống sẽ yêu cầu mã OTP 6 số ở bước kế tiếp.
+    </div>
+
+    <form method="post" action="{% url 'accounts:login' %}">
+        {% csrf_token %}
+
+        <!-- username -->
+        <div class="form-group">
+            <label class="form-label" for="id_username">Tên đăng nhập</label>
+            <input class="form-input" type="text" name="username" id="id_username"
+                   placeholder="ví dụ: admin"
+                   required>
+            {% if form.username.errors %}
+                <div class="form-error">{{ form.username.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <!-- password -->
+        <div class="form-group">
+            <label class="form-label" for="id_password">Mật khẩu</label>
+            <input class="form-input" type="password" name="password" id="id_password"
+                   placeholder="••••••••" required>
+            {% if form.password.errors %}
+                <div class="form-error">{{ form.password.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        {% if form.non_field_errors %}
+        <div class="form-error">
+            {{ form.non_field_errors.0 }}
+        </div>
+        {% endif %}
+
+        <div class="form-group" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+            <button class="btn-primary" type="submit">Tiếp tục</button>
+            <a class="nav-link" style="padding:0;" href="{% url 'accounts:password_reset' %}">Quên mật khẩu?</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

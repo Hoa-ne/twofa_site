@@ -1,0 +1,6 @@
+django==5.0.14
+mysqlclient
+pyotp
+qrcode
+pillow
+python-dotenv

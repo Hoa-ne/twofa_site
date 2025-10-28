@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Diễn đàn{% endblock %}
+
+{% block content %}
+<div style="width:100%; max-width:800px;">
+    <h2 style="font-size:16px; font-weight:600; color:var(--text-primary); margin-bottom:16px;">
+        Chủ đề mới nhất
+    </h2>
+
+    {% for thread in threads %}
+        <a class="thread-card" href="{% url 'forum:thread_detail' thread.id %}">
+            <div class="thread-title">{{ thread.title }}</div>
+            <div class="thread-meta">
+                Bởi {{ thread.author.username }}
+                • {{ thread.created_at|date:"H:i d/m/Y" }}
+            </div>
+        </a>
+    {% empty %}
+        <div class="thread-card">
+            <div class="thread-title">Chưa có chủ đề nào.</div>
+            <div class="thread-meta">Hãy tạo bài đầu tiên!</div>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}

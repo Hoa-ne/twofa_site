@@ -1,0 +1,51 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+    <title>{% block title %}TwoFA Demo{% endblock %}</title>
+
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body>
+<div class="app-shell">
+
+    <!-- NAVBAR GLASS -->
+    <header class="nav-glass">
+        <div class="nav-left">
+            <div>
+                <div class="brand">TwoFA Demo</div>
+                <div class="brand-sub">Bảo mật OTP / 2 lớp</div>
+            </div>
+
+            <!-- ví dụ link chuyên mục forum -->
+            <a class="nav-link" href="{% url 'forum:home' %}">Forum</a>
+            <a class="nav-link" href="{% url 'accounts:enable_2fa' %}">2FA</a>
+            <a class="nav-link" href="{% url 'accounts:dashboard' %}">Dashboard</a>
+        </div>
+
+        <div class="nav-right">
+            {% if user.is_authenticated %}
+                <span class="nav-link" style="cursor:default;">👤 {{ user.username }}</span>
+                <a class="nav-link" href="{% url 'accounts:logout' %}">Đăng xuất</a>
+            {% else %}
+                <a class="nav-link" href="{% url 'accounts:login' %}">Đăng nhập</a>
+                <a class="nav-link" href="{% url 'accounts:register' %}">Đăng ký</a>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="center-flex-col" style="flex:1; width:100%;">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- FOOTER (cũng có thể glass nếu thích) -->
+    <footer class="center-flex-col mt-24" style="padding-bottom:40px; text-align:center; font-size:12px; color:var(--text-dim);">
+        <div>© 2025 TwoFA Demo. All rights reserved.</div>
+        <div>Hệ thống xác thực 2 lớp (TOTP, QR, 2FA policy)</div>
+    </footer>
+</div>
+</body>
+</html>
