@@ -1,36 +1,61 @@
 from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
-from .models import User
-from .utils import create_otp_secret
-from django.contrib import admin, messages
-from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
-from .models import User, SecurityPolicy
+from django.utils import timezone
+
+from .models import User, SecurityPolicy, SecurityLog
 from .utils import create_otp_secret
 
 
-@admin.action(description="Reset OTP secret & buộc bật lại 2FA")
+def _log(request, user, event, note=""):
+    SecurityLog.objects.create(
+        user=user,
+        event=event,
+        ip=request.META.get("REMOTE_ADDR", ""),
+        note=note,
+        created_at=timezone.now(),
+    )
+
+
+# ====== ACTIONS TRÊN USER (chọn nhiều user trong danh sách) ======
+
+@admin.action(description="Reset OTP secret & buộc bật lại 2FA + ép đổi mật khẩu")
 def reset_otp_secret(modeladmin, request, queryset):
+    """
+    - phát otp_secret mới
+    - tắt is_2fa_enabled
+    - must_setup_2fa = True (bị ép quét lại QR khi login)
+    - failed_otp_attempts = 0, otp_locked=False
+    - must_change_password = True (ép đổi pass sau sự cố)
+    """
     count = 0
     for user in queryset:
         user.otp_secret = create_otp_secret()
         user.is_2fa_enabled = False
         user.must_setup_2fa = True
+        user.failed_otp_attempts = 0
+        user.otp_locked = False
+        user.must_change_password = True
         user.save()
+        _log(request, user, "RESET_OTP", note="Admin reset OTP secret + force pw reset")
         count += 1
     messages.success(
         request,
-        f"Đã reset OTP cho {count} user. Họ sẽ phải quét mã OTP mới khi đăng nhập."
+        f"Đã reset OTP cho {count} user. Họ sẽ phải quét QR mới, đổi mật khẩu, và bật lại 2FA."
     )
 
-@admin.action(description="Bật cờ 'bắt buộc 2FA' cho user được chọn")
+
+@admin.action(description="Bật cờ 'bắt buộc 2FA' cho user được chọn (must_setup_2fa=True)")
 def force_require_2fa(modeladmin, request, queryset):
     updated = queryset.update(must_setup_2fa=True)
+    for u in queryset:
+        _log(request, u, "FORCED_2FA", note="must_setup_2fa=True")
     messages.success(
         request,
         f"Đã bật ép buộc 2FA cho {updated} user được chọn."
     )
 
-@admin.action(description="Tắt cờ 'bắt buộc 2FA' cho user được chọn")
+
+@admin.action(description="Tắt cờ 'bắt buộc 2FA' cho user được chọn (must_setup_2fa=False)")
 def disable_require_2fa(modeladmin, request, queryset):
     updated = queryset.update(must_setup_2fa=False)
     messages.success(
@@ -38,12 +63,48 @@ def disable_require_2fa(modeladmin, request, queryset):
         f"Đã tắt ép buộc 2FA cho {updated} user được chọn."
     )
 
-@admin.action(description="Vô hiệu hoá 2FA hiện tại (tắt is_2fa_enabled)")
+
+@admin.action(description="Vô hiệu hoá 2FA hiện tại (is_2fa_enabled=False)")
 def disable_2fa(modeladmin, request, queryset):
     updated = queryset.update(is_2fa_enabled=False)
     messages.success(
         request,
         f"Đã tắt 2FA cho {updated} user được chọn."
+    )
+
+
+@admin.action(description="Mở khoá OTP (otp_locked=False, failed_otp_attempts=0)")
+def unlock_otp(modeladmin, request, queryset):
+    updated = 0
+    for user in queryset:
+        user.otp_locked = False
+        user.failed_otp_attempts = 0
+        user.save()
+        _log(request, user, "OTP_LOCKED", note="Admin unlocked OTP manually")
+        updated += 1
+    messages.success(
+        request,
+        f"Đã mở khoá OTP cho {updated} user."
+    )
+
+
+@admin.action(description="Ép đổi mật khẩu (must_change_password=True)")
+def force_password_reset(modeladmin, request, queryset):
+    updated = queryset.update(must_change_password=True)
+    for u in queryset:
+        _log(request, u, "FORCE_PW_RESET", note="Admin set must_change_password=True")
+    messages.success(
+        request,
+        f"Đã ép {updated} user phải đổi mật khẩu ở lần đăng nhập kế tiếp."
+    )
+
+
+@admin.action(description="Bỏ ép đổi mật khẩu (must_change_password=False)")
+def clear_password_reset_flag(modeladmin, request, queryset):
+    updated = queryset.update(must_change_password=False)
+    messages.success(
+        request,
+        f"Đã gỡ cờ ép đổi mật khẩu cho {updated} user."
     )
 
 
@@ -68,6 +129,9 @@ class UserAdmin(DjangoUserAdmin):
                 "otp_secret",
                 "is_2fa_enabled",
                 "must_setup_2fa",
+                "failed_otp_attempts",
+                "otp_locked",
+                "must_change_password",
             )
         }),
         ("Dấu thời gian", {"fields": ("last_login", "date_joined")}),
@@ -96,6 +160,8 @@ class UserAdmin(DjangoUserAdmin):
         "email_verified",
         "is_2fa_enabled",
         "must_setup_2fa",
+        "otp_locked",
+        "must_change_password",
         "is_staff",
         "is_superuser",
     )
@@ -105,6 +171,8 @@ class UserAdmin(DjangoUserAdmin):
         "email_verified",
         "is_2fa_enabled",
         "must_setup_2fa",
+        "otp_locked",
+        "must_change_password",
         "is_staff",
         "is_superuser",
         "is_active",
@@ -118,22 +186,25 @@ class UserAdmin(DjangoUserAdmin):
         force_require_2fa,
         disable_require_2fa,
         disable_2fa,
+        unlock_otp,
+        force_password_reset,
+        clear_password_reset_flag,
     ]
 
 
-# ----- ADMIN CHO SECURITYPOLICY -----
+# ====== ADMIN CHO SECURITYPOLICY ======
 
 @admin.register(SecurityPolicy)
 class SecurityPolicyAdmin(admin.ModelAdmin):
     list_display = ("require_2fa_for_new_users", "updated_at")
 
-    # 2 "nút tổng" để ép tất cả user
     actions = ["force_all_users_require_2fa", "disable_all_users_require_2fa"]
 
     @admin.action(description="Ép TOÀN BỘ user phải bật lại 2FA (must_setup_2fa=True)")
     def force_all_users_require_2fa(self, request, queryset):
-        # ép tất cả user (kể cả không nằm trong queryset, để làm 'nút tổng')
         updated = User.objects.update(must_setup_2fa=True)
+        for u in User.objects.all():
+            _log(request, u, "FORCED_2FA", note="Global force via SecurityPolicy")
         messages.success(
             request,
             f"Đã ép {updated} user phải bật 2FA. Lần đăng nhập tới ai chưa bật sẽ bị bắt quét OTP."
@@ -144,5 +215,21 @@ class SecurityPolicyAdmin(admin.ModelAdmin):
         updated = User.objects.update(must_setup_2fa=False)
         messages.success(
             request,
-            f"Đã bỏ ép buộc 2FA cho {updated} user. Người dùng có thể đăng nhập không cần setup OTP ngay."
+            f"Đã bỏ ép buộc 2FA cho {updated} user."
         )
+
+
+# ====== ADMIN CHO SECURITYLOG (read-only) ======
+
+@admin.register(SecurityLog)
+class SecurityLogAdmin(admin.ModelAdmin):
+    list_display = ("created_at", "user", "event", "ip", "note")
+    list_filter = ("event", "user")
+    search_fields = ("user__username", "ip", "note")
+    ordering = ("-created_at",)
+    readonly_fields = ("user", "event", "ip", "note", "created_at")
+
+    def has_add_permission(self, request):
+        return False  # không cho tạo tay
+    def has_change_permission(self, request, obj=None):
+        return False  # không cho sửa tay

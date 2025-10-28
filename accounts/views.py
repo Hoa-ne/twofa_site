@@ -7,54 +7,23 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
+from django.utils import timezone
 
-from .models import User
-from .forms import RegisterForm, LoginForm, OTPForm, Enable2FAConfirmForm
+from .models import User, SecurityPolicy, SecurityLog
+from .forms import RegisterForm, LoginForm, OTPForm, Enable2FAConfirmForm, ChangePasswordForm
 from .tokens import email_verification_token
 from .utils import create_otp_secret, build_totp_uri, qr_code_base64, verify_totp
 
-from .models import User, SecurityPolicy
 
-# --- Đăng ký & kích hoạt email (không đổi nhiều) ---
+def _log_event(user, event, request=None, note=""):
+    SecurityLog.objects.create(
+        user=user,
+        event=event,
+        ip=(request.META.get("REMOTE_ADDR", "") if request else ""),
+        note=note,
+        created_at=timezone.now(),
+    )
 
-def register_view(request):
-    if request.method == "POST":
-        form = RegisterForm(request.POST)
-        if form.is_valid():
-            user = form.save(commit=False)
-            user.email_verified = False
-            user.role = "USER"
-
-            # --- TOÀN BỘ KHỐI NÀY CẦN ĐƯỢC THỤT LỀ VÀO TRONG ---
-            # Áp dụng chính sách toàn hệ thống:
-            policy = SecurityPolicy.objects.first()
-            if policy:
-                # Nếu admin KHÔNG bắt buộc 2FA cho user mới
-                if policy.require_2fa_for_new_users is False:
-                    user.must_setup_2fa = False
-                else:
-                    user.must_setup_2fa = True
-            else:
-                # fallback: nếu chưa có policy trong DB thì cứ bắt buộc
-                user.must_setup_2fa = True
-
-            # is_2fa_enabled mặc định False, otp_secret chưa có
-            user.save()
-
-            send_verification_email(request, user)
-
-            return render(request, "accounts/verify_email_sent.html", {"email": user.email})
-        # --- KẾT THÚC KHỐI CẦN THỤT LỀ ---
-        
-        # Khối 'else' này cũng cần được sửa thụt lề để ngang hàng với 'if form.is_valid():'
-        # Nó sẽ render lại trang register với các lỗi validation
-        else:
-            return render(request, "accounts/register.html", {"form": form})
-            
-    # 'else' này ngang hàng với 'if request.method == "POST":'
-    else:
-        form = RegisterForm()
-    return render(request, "accounts/register.html", {"form": form})
 
 def send_verification_email(request, user):
     uid = urlsafe_base64_encode(force_bytes(user.pk))
@@ -67,6 +36,34 @@ def send_verification_email(request, user):
         f"Bấm link sau để kích hoạt tài khoản:\n{activation_link}\n"
     )
     send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email])
+
+
+def register_view(request):
+    if request.method == "POST":
+        form = RegisterForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.email_verified = False
+            user.role = "USER"
+
+            # Áp dụng SecurityPolicy cho user mới
+            policy = SecurityPolicy.objects.first()
+            if policy:
+                user.must_setup_2fa = policy.require_2fa_for_new_users
+            else:
+                user.must_setup_2fa = True  # fallback: bắt buộc 2FA
+
+            # user vừa tạo thì chưa bật 2FA, chưa có otp_secret
+            # must_change_password mặc định False
+            user.save()
+
+            send_verification_email(request, user)
+
+            return render(request, "accounts/verify_email_sent.html", {"email": user.email})
+    else:
+        form = RegisterForm()
+    return render(request, "accounts/register.html", {"form": form})
+
 
 def activate_email_view(request, uidb64, token):
     try:
@@ -82,40 +79,42 @@ def activate_email_view(request, uidb64, token):
     return render(request, "accounts/activate_success.html", {"ok": False})
 
 
-# --- Đăng nhập & xử lý 2FA logic mới ---
-
 def login_view(request):
     """
-    Logic:
-    1. Kiểm tra username/password + email_verified.
+    Logic login (bước 1: mật khẩu):
+    1. Kiểm tra username/password và email_verified.
     2. Nếu user.is_2fa_enabled == True:
-        -> chưa login ngay
-        -> chuyển sang bước OTP (/accounts/otp/)
+          -> KHÔNG login ngay
+          -> Lưu pre_2fa_user_id và chuyển sang otp_verify_view
+          -> Nếu user.otp_locked == True thì vẫn chuyển, nhưng otp_verify_view sẽ báo khóa.
     3. Nếu user.is_2fa_enabled == False:
-        3a. login(request, user) tạm
-        3b. nếu user.must_setup_2fa == True:
-                redirect đến /accounts/enable-2fa/ để buộc scan QR và bật 2FA
-            else:
-                vào dashboard luôn
+          -> login() tạm
+          -> Nếu user.must_setup_2fa == True: ép sang enable_2fa_view
+          -> else nếu user.must_change_password == True: ép sang change_password_view
+          -> else vào dashboard
     """
     if request.method == "POST":
         form = LoginForm(request.POST)
         if form.is_valid():
             user = form.cleaned_data["user"]
 
-            # Trường hợp user đã bật 2FA => bắt OTP
+            # User đã bật 2FA -> cần OTP bước 2
             if user.is_2fa_enabled:
                 request.session["pre_2fa_user_id"] = user.id
                 return redirect("accounts:otp_verify")
 
-            # User chưa bật 2FA
+            # User CHƯA bật 2FA
             login(request, user)
+            _log_event(user, "LOGIN_SUCCESS", request=request, note="Login without 2FA yet")
 
-            # Nếu admin ép phải setup 2FA ngay
+            # Nếu bị ép setup 2FA ngay
             if user.must_setup_2fa and not user.is_2fa_enabled:
                 return redirect("accounts:enable_2fa")
 
-            # Nếu không bị ép, cho vào dashboard bình thường
+            # Nếu bị ép đổi mật khẩu
+            if user.must_change_password:
+                return redirect("accounts:change_password")
+
             return redirect("accounts:dashboard")
     else:
         form = LoginForm()
@@ -125,9 +124,13 @@ def login_view(request):
 
 def otp_verify_view(request):
     """
-    Cho user đã bật 2FA:
-    - Sau khi password đúng, ta lưu pre_2fa_user_id trong session.
-    - User nhập OTP 6 số, nếu đúng thì login() chính thức và vào dashboard.
+    Bước 2 của login khi user.is_2fa_enabled == True.
+    - Nếu tài khoản bị otp_locked => chặn luôn.
+    - Nếu OTP sai: tăng failed_otp_attempts, nếu >=5 thì otp_locked=True.
+    - Nếu OTP đúng:
+        + reset failed_otp_attempts, otp_locked=False
+        + login() chính thức
+        + sau đó kiểm tra must_setup_2fa / must_change_password giống dashboard logic.
     """
     user_id = request.session.get("pre_2fa_user_id")
     if not user_id:
@@ -135,23 +138,58 @@ def otp_verify_view(request):
 
     user = get_object_or_404(User, pk=user_id)
 
+    # nếu đã bị khóa OTP thì từ chối luôn
+    if user.otp_locked:
+        _log_event(user, "OTP_LOCKED", request=request, note="User tried while locked")
+        return render(
+            request,
+            "accounts/otp_verify.html",
+            {
+                "form": OTPForm(),
+                "username": user.username,
+                "locked": True,
+                "error": "Tài khoản của bạn đã bị khóa OTP do nhập sai quá nhiều lần. Liên hệ admin để mở khóa."
+            },
+            status=403,
+        )
+
     if request.method == "POST":
         form = OTPForm(request.POST)
         if form.is_valid():
             code = form.cleaned_data["otp_code"]
+
             if verify_totp(user, code):
-                # OTP hợp lệ -> login chính thức
+                # OTP đúng
+                user.failed_otp_attempts = 0
+                user.otp_locked = False
+                user.save()
+
+                _log_event(user, "OTP_SUCCESS", request=request, note="OTP ok, full login")
+
                 login(request, user)
                 request.session.pop("pre_2fa_user_id", None)
 
-                # Trong trường hợp admin vẫn để must_setup_2fa=True (hiếm)
-                # ta vẫn ép họ đi bật 2FA lại nếu cần
+                # ép setup 2FA? (trong thực tế is_2fa_enabled True rồi, nên thường không)
                 if user.must_setup_2fa and not user.is_2fa_enabled:
                     return redirect("accounts:enable_2fa")
 
+                # ép đổi mật khẩu?
+                if user.must_change_password:
+                    return redirect("accounts:change_password")
+
                 return redirect("accounts:dashboard")
             else:
-                form.add_error("otp_code", "Mã OTP không hợp lệ")
+                # OTP sai
+                user.failed_otp_attempts += 1
+                note_msg = f"OTP failed attempt {user.failed_otp_attempts}"
+                if user.failed_otp_attempts >= 5:
+                    user.otp_locked = True
+                    note_msg += " -> LOCKED"
+                user.save()
+
+                _log_event(user, "OTP_FAIL", request=request, note=note_msg)
+
+                form.add_error("otp_code", "Mã OTP không hợp lệ.")
     else:
         form = OTPForm()
 
@@ -160,67 +198,101 @@ def otp_verify_view(request):
 
 @login_required
 def enable_2fa_view(request):
+    """
+    Trang này cho user quét QR và confirm OTP để bật 2FA.
+    - Nếu user chưa có otp_secret -> tạo mới.
+    - Khi xác nhận OTP thành công:
+        is_2fa_enabled = True
+        must_setup_2fa = False
+    """
     user = request.user
 
-    # Nếu user đã bật 2FA rồi -> KHÔNG lộ secret nữa
-    if user.is_2fa_enabled:
-        return render(
-            request,
-            "accounts/enable_2fa.html",
-            {
-                "is_enabled": True,
-                "qr_b64": None,
-                "otp_uri": None,
-                "show_form": False,  # template sẽ dùng flag này để ẩn form/QR
-            },
-        )
-
-    # Nếu user CHƯA bật 2FA:
-    # 1. Đảm bảo có secret
     if not user.otp_secret:
         user.otp_secret = create_otp_secret()
         user.save()
 
-    # 2. Tạo QR và URI để hiển thị
     otp_uri = build_totp_uri(user)
     qr_b64 = qr_code_base64(otp_uri)
 
     if request.method == "POST":
-        code = request.POST.get("otp_code", "").strip()
-        if verify_totp(user, code):
-            # OTP nhập đúng -> bật 2FA
-            user.is_2fa_enabled = True
-            user.must_setup_2fa = False
-            user.save()
-            messages.success(request, "Đã kích hoạt 2FA cho tài khoản của bạn.")
-            return redirect("accounts:enable_2fa")  # reload trang ở trạng thái enabled
-        else:
-            messages.error(request, "Mã OTP không hợp lệ. Vui lòng thử lại.")
+        form = Enable2FAConfirmForm(request.POST)
+        if form.is_valid():
+            code = form.cleaned_data["otp_code"]
+            if verify_totp(user, code):
+                user.is_2fa_enabled = True
+                user.must_setup_2fa = False
+                user.save()
+                _log_event(user, "OTP_SUCCESS", request=request, note="Enable 2FA success")
+                return redirect("accounts:dashboard")
+            else:
+                form.add_error("otp_code", "Mã OTP sai. Thử lại.")
+    else:
+        form = Enable2FAConfirmForm()
 
-    return render(
-        request,
-        "accounts/enable_2fa.html",
-        {
-            "is_enabled": False,
-            "qr_b64": qr_b64,
-            "otp_uri": otp_uri,
-            "show_form": True,  # cho template biết có form nhập OTP
-        },
-    )
+    ctx = {
+        "qr_b64": qr_b64,
+        "otp_uri": otp_uri,
+        "is_enabled": user.is_2fa_enabled,
+        "form": form,
+    }
+    return render(request, "accounts/enable_2fa.html", ctx)
+
+
+@login_required
+def change_password_view(request):
+    """
+    Nếu user.must_change_password == True thì ép người dùng đổi mật khẩu.
+    Sau khi đổi xong:
+       - set_password()
+       - must_change_password = False
+       - login lại (để refresh session)
+    """
+    user = request.user
+
+    if request.method == "POST":
+        form = ChangePasswordForm(user, request.POST)
+        if form.is_valid():
+            new_pw = form.cleaned_data["new_password1"]
+            user.set_password(new_pw)
+            user.must_change_password = False
+            user.save()
+            # login lại với mật khẩu mới
+            login(request, user)
+            return redirect("accounts:dashboard")
+    else:
+        form = ChangePasswordForm(user)
+
+    return render(request, "accounts/change_password.html", {"form": form})
 
 
 @login_required
 def dashboard_view(request):
     """
-    Dashboard. Tuy nhiên nếu must_setup_2fa vẫn True và user chưa bật 2FA,
-    chặn họ ra ngoài luôn: ép vào trang enable_2fa.
+    Dashboard user:
+    - Nếu must_setup_2fa=True và user chưa bật 2FA -> ép đến enable_2fa_view
+    - Nếu must_change_password=True -> ép đến change_password_view
+    - Nếu otp_locked=True -> cảnh báo
+    Hiển thị trạng thái bảo mật cho user.
     """
     u = request.user
+
     if u.must_setup_2fa and not u.is_2fa_enabled:
-        # ép quét OTP trước khi dùng hệ thống
         return redirect("accounts:enable_2fa")
 
-    return render(request, "accounts/dashboard.html")
+    if u.must_change_password:
+        return redirect("accounts:change_password")
+
+    security_info = {
+        "email_verified": u.email_verified,
+        "is_2fa_enabled": u.is_2fa_enabled,
+        "must_setup_2fa": u.must_setup_2fa,
+        "otp_locked": u.otp_locked,
+        "failed_otp_attempts": u.failed_otp_attempts,
+        "must_change_password": u.must_change_password,
+        "last_login": u.last_login,
+    }
+
+    return render(request, "accounts/dashboard.html", {"security_info": security_info})
 
 
 def logout_view(request):
@@ -233,4 +305,3 @@ def staff_only_view(request):
     if not request.user.is_staff_role():
         return HttpResponseForbidden("Bạn không có quyền STAFF.")
     return render(request, "accounts/dashboard.html", {"staff": True})
-

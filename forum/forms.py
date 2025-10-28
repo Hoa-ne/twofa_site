@@ -1,19 +1,42 @@
 from django import forms
-from .models import Thread
+from .models import Thread, Post, Category
 
-class ThreadCreateForm(forms.ModelForm):
+class ThreadCreateForm(forms.Form):
+    title = forms.CharField(
+        label="Tiêu đề",
+        widget=forms.TextInput(attrs={
+            "class": "form-input",
+            "placeholder": "Tiêu đề chủ đề..."
+        })
+    )
+    category = forms.ModelChoiceField(
+        queryset=Category.objects.all(),
+        label="Chuyên mục",
+        widget=forms.Select(attrs={
+            "class": "form-input",
+        })
+    )
+    content = forms.CharField(
+        label="Nội dung mở đầu",
+        widget=forms.Textarea(attrs={
+            "class": "form-input",
+            "placeholder": "Nhập nội dung mở đầu cho chủ đề...",
+            "rows": 5,
+        })
+    )
+
+
+class PostForm(forms.ModelForm):
     class Meta:
-        model = Thread
-        fields = ["category", "title"]
+        model = Post
+        fields = ["content"]
         widgets = {
-            "category": forms.Select(
-                attrs={"class": "form-input"}
-            ),
-            "title": forms.TextInput(
-                attrs={"class": "form-input", "placeholder": "Tiêu đề thảo luận"}
-            ),
+            "content": forms.Textarea(attrs={
+                "class": "form-input",
+                "placeholder": "Nhập câu trả lời của bạn...",
+                "rows": 4,
+            }),
         }
         labels = {
-            "category": "Chuyên mục",
-            "title": "Tiêu đề",
+            "content": "Trả lời",
         }

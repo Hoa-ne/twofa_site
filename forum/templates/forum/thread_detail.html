@@ -1,20 +1,95 @@
 {% extends "base.html" %}
-{% block content %}
-<h2>{{ thread.title }}</h2>
-{% for p in posts %}
-  <article class="post-box">
-    <b>{{ p.author.username }}</b> | {{ p.created_at }}<br>
-    <p>{{ p.content|linebreaks }}</p>
-  </article>
-{% endfor %}
 
-{% if user.is_authenticated %}
-<form method="post">
-  {% csrf_token %}
-  {{ form.as_p }}
-  <button type="submit">Trả lời</button>
-</form>
-{% else %}
-<p>Bạn cần <a href="{% url 'accounts:login' %}">đăng nhập</a> để trả lời.</p>
-{% endif %}
+{% block title %}{{ thread.title }}{% endblock %}
+
+{% block content %}
+
+<h1 class="page-heading">{{ thread.title }}</h1>
+
+<!-- Thông tin thread -->
+<div class="card">
+    <div class="card-header">
+        {{ thread.title }}
+        {% if thread.locked %}
+            <span class="badge" style="background-color:#fdecea;color:#d93025;border-color:#f5c6cb;">
+                ĐÃ KHÓA
+            </span>
+        {% endif %}
+    </div>
+
+    <div class="card-line">
+        <strong>{{ thread.author.username }}</strong>
+        • {{ thread.created_at|date:"H:i d/m/Y" }}
+        • Chuyên mục: {{ thread.category.title }}
+    </div>
+</div>
+
+<!-- Danh sách post -->
+<div class="card">
+    <div class="card-header">Các trả lời</div>
+
+    {% if posts %}
+        <div class="table-like-list">
+            <div class="table-like-header">
+                <div>Nội dung</div>
+                <div>Người trả lời</div>
+                <div>Thời gian</div>
+            </div>
+
+            {% for p in posts %}
+                <div class="table-like-row">
+                    <div style="white-space:pre-line; color:var(--color-text-primary);">
+                        {{ p.content }}
+                    </div>
+                    <div>
+                        {{ p.author.username }}
+                    </div>
+                    <div>
+                        {{ p.created_at|date:"H:i d/m/Y" }}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="card-line">
+            Chưa có trả lời nào.
+        </div>
+    {% endif %}
+</div>
+
+<!-- Form trả lời -->
+<div class="card form-wrapper" style="max-width:600px;">
+    <div class="card-header">Gửi trả lời</div>
+
+    {% if not request.user.is_authenticated %}
+        <div class="alert-info">
+            Bạn cần
+            <a href="{% url 'accounts:login' %}" style="color:var(--color-accent);text-decoration:none;">
+                đăng nhập
+            </a>
+            để trả lời.
+        </div>
+    {% else %}
+        {% if thread.locked %}
+            <div class="alert-error">
+                Chủ đề này đã bị khóa, không thể trả lời thêm.
+            </div>
+        {% else %}
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="form-group">
+                    <label class="form-label">Nội dung trả lời</label>
+                    {{ form.content }}
+                    {% if form.content.errors %}
+                        <div class="form-error">{{ form.content.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <button type="submit" class="btn-primary">Trả lời</button>
+            </form>
+        {% endif %}
+    {% endif %}
+</div>
+
 {% endblock %}

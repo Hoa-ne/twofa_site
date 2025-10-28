@@ -1,10 +1,39 @@
 {% extends "base.html" %}
+{% block title %}Xác thực OTP{% endblock %}
 {% block content %}
-<h2>Nhập mã OTP</h2>
-<p>Xin chào {{ username }}, hãy mở Google Authenticator và nhập mã 6 số.</p>
-<form method="post">
-  {% csrf_token %}
-  {{ form.as_p }}
-  <button type="submit">Xác thực</button>
-</form>
+
+<h1 class="page-heading">Xác thực OTP</h1>
+
+<div class="card form-wrapper">
+
+    <div class="card-header">
+        Nhập mã OTP 6 số từ ứng dụng Authenticator cho tài khoản <strong>{{ username }}</strong>
+    </div>
+
+    {% if locked %}
+        <div class="alert-error">
+            {{ error }}
+        </div>
+        <p class="form-hint">
+            Tài khoản bị khóa OTP do thử sai quá nhiều lần. Vui lòng liên hệ quản trị viên để mở khóa.
+        </p>
+    {% else %}
+
+        {% if form.errors %}
+            <div class="alert-error">{{ form.errors.otp_code }}</div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label class="form-label">Mã OTP</label>
+                {{ form.otp_code }}
+            </div>
+
+            <button class="btn-primary" type="submit">Xác nhận OTP</button>
+        </form>
+    {% endif %}
+</div>
+
 {% endblock %}
