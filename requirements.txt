@@ -1,6 +1,7 @@
-django==5.0.14
+django
 mysqlclient
 pyotp
 qrcode
 pillow
 python-dotenv
+mysql
