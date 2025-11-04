@@ -111,3 +111,8 @@ LOGOUT_REDIRECT_URL = "/"
 
 SITE_NAME = os.getenv("SITE_NAME", "TwoFA Demo")
 SITE_DOMAIN = os.getenv("SITE_DOMAIN", "http://127.0.0.1:8000")
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+
+# Tự động chuyển hướng HTTP sang HTTPS
+SECURE_SSL_REDIRECT = True

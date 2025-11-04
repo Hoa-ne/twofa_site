@@ -1,6 +1,5 @@
 django
 mysqlclient
-pyotp
 qrcode
 pillow
 python-dotenv
