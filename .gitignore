@@ -8,3 +8,4 @@ staticfiles/
 .vscode/
 Thumbs.db
 .DS_Store
+static_collected/

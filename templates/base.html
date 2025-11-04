@@ -14,8 +14,8 @@
 <header class="app-navbar">
     <div class="app-navbar-inner">
         <a href="/" class="brand">
-            <div class="brand-icon">2F</div>
-            <span>TwoFA Demo</span>
+            <div class="brand-icon">VOZ</div>
+            <span>Nhóm 8_2FA</span>
         </a>
 
         <nav class="nav-links">
@@ -31,6 +31,8 @@
 
                 <a class="btn-small-accent" href="{% url 'accounts:logout' %}">Đăng xuất</a>
             {% else %}
+                <a href="{% url 'accounts:register' %}">Đăng ký</a>
+                
                 <a class="btn-small-accent" href="{% url 'accounts:login' %}">Đăng nhập</a>
             {% endif %}
         </nav>

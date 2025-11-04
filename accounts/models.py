@@ -10,28 +10,27 @@ class User(AbstractUser):
         ("USER", "User"),
     )
 
-    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default="USER")
+    # <<< THÊM DÒNG NÀY
+    email = models.EmailField("email address", unique=True)
 
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default="USER")
     email_verified = models.BooleanField(default=False)
 
     # 2FA / OTP
     otp_secret = models.CharField(max_length=64, blank=True, null=True)
     is_2fa_enabled = models.BooleanField(default=False)
 
-    # user có bị bắt buộc phải setup 2FA trước khi xài hệ thống không
     must_setup_2fa = models.BooleanField(
         default=True,
         help_text="Nếu True: user bị ép phải quét QR và bật OTP trước khi dùng hệ thống."
     )
 
-    # bảo vệ brute-force OTP
     failed_otp_attempts = models.IntegerField(default=0)
     otp_locked = models.BooleanField(
         default=False,
         help_text="True = tạm khóa giai đoạn OTP vì nhập sai quá nhiều lần."
     )
 
-    # ép đổi mật khẩu (sau sự cố bảo mật)
     must_change_password = models.BooleanField(
         default=False,
         help_text="True = user sẽ bị chuyển sang trang đổi mật khẩu trước khi vào dashboard."
@@ -84,3 +83,23 @@ class SecurityLog(models.Model):
     def __str__(self):
         who = self.user.username if self.user else "unknown-user"
         return f"{self.created_at} {who} {self.event}"
+
+# Cấu hình bảo mật toàn cục (singleton)
+class SecurityConfig(models.Model):
+    id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
+    enforce_2fa = models.BooleanField(default=False, help_text="Bắt buộc tất cả tài khoản phải bật 2FA")
+    otp_digits = models.PositiveSmallIntegerField(default=6)
+    otp_period = models.PositiveSmallIntegerField(default=30)
+    lockout_threshold = models.PositiveSmallIntegerField(default=5, help_text="Sai OTP tối đa trước khi khoá")
+
+    def __str__(self):
+        return "Security Config (global)"
+
+    def save(self, *args, **kwargs):
+        self.id = 1  # luôn là 1 (singleton)
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(id=1)
+        return obj

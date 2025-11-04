@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, reverse_lazy
 from django.contrib.auth import views as auth_views
 from . import views
 
@@ -15,16 +15,16 @@ urlpatterns = [
     path("logout/", views.logout_view, name="logout"),
     path("enable-2fa/", views.enable_2fa_view, name="enable_2fa"),
 
-    # Ép đổi mật khẩu sau sự cố bảo mật (must_change_password=True)
+    # Ép đổi mật khẩu sau sự cố bảo mật
     path("change-password/", views.change_password_view, name="change_password"),
 
-    # Dashboard người dùng (hiển thị trạng thái bảo mật)
+    # Dashboard người dùng
     path("dashboard/", views.dashboard_view, name="dashboard"),
 
-    # Khu vực chỉ STAFF/ADMIN (ví dụ quyền quản trị nội dung)
+    # Khu vực staff/admin
     path("staff-area/", views.staff_only_view, name="staff_only"),
 
-    # Flow quên mật khẩu / đặt lại mật khẩu qua email
+    # --- Password reset flow ---
     path(
         "password-reset/",
         auth_views.PasswordResetView.as_view(
@@ -32,6 +32,7 @@ urlpatterns = [
             email_template_name="accounts/password_reset_email.txt",
             subject_template_name="accounts/password_reset_subject.txt",
             from_email=None,
+            success_url=reverse_lazy("accounts:password_reset_done"),  # <— quan trọng
         ),
         name="password_reset",
     ),
@@ -45,7 +46,8 @@ urlpatterns = [
     path(
         "reset/<uidb64>/<token>/",
         auth_views.PasswordResetConfirmView.as_view(
-            template_name="accounts/password_reset_confirm.html"
+            template_name="accounts/password_reset_confirm.html",
+            success_url=reverse_lazy("accounts:password_reset_complete"),  # <— quan trọng
         ),
         name="password_reset_confirm",
     ),

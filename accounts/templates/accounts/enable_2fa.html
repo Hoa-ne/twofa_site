@@ -1,74 +1,100 @@
-{% extends "base.html" %}
-{% block title %}Xác thực hai lớp (2FA){% endblock %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <title>Bật xác thực hai lớp (2FA)</title>
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 560px; margin: 40px auto; line-height: 1.5; }
+        h1 { font-size: 22px; margin-bottom: 12px; text-align: center; }
+        .msg { font-size: 14px; color: #444; margin-bottom: 16px; text-align: center; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .box { border: 1px solid #ddd; border-radius: 10px; padding: 16px; }
+        .qr { text-align: center; }
+        .qr img { max-width: 220px; height: auto; }
+        .uri { font-size: 12px; word-break: break-all; background: #f6f6f6; padding: 8px; border-radius: 6px; margin-top: 8px; }
+        .row { display: grid; grid-template-columns: 140px 1fr; gap: 8px; margin: 6px 0; }
+        .val { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: #fbfbfb; border: 1px dashed #ccc; padding: 6px 8px; border-radius: 6px; }
+        .copy { font-size: 12px; margin-left: 8px; cursor: pointer; }
+        form { border: 1px solid #ddd; border-radius: 10px; padding: 16px; margin-top: 16px; }
+        label { font-weight: 600; display: block; margin-bottom: 6px; }
+        input { width: 100%; padding: 10px 12px; font-size: 16px; border-radius: 8px; border: 1px solid #bbb; margin-bottom: 12px; }
+        button { width: 100%; padding: 10px 12px; font-size: 16px; border-radius: 8px; border: 0; background: #111; color: #fff; cursor: pointer; }
+        .errorlist { color: #c00; font-size: 14px; margin-bottom: 12px; list-style: none; padding: 0; }
+        .enabled { background: #e6ffe6; border: 1px solid #66cc66; color: #056105; padding: 12px; border-radius: 8px; text-align:center; margin-bottom: 16px; }
+        .hint { font-size: 12px; color: #777; }
+    </style>
+</head>
+<body>
 
-{% block content %}
-<div class="glass-card">
+<h1>Xác thực hai lớp (2FA)</h1>
 
-    <div class="card-header">Xác thực hai lớp (2FA)</div>
+{% if is_enabled %}
+  <div class="enabled">2FA đã được bật cho tài khoản của bạn.</div>
+  <p class="msg">Từ lần đăng nhập sau, bạn sẽ phải nhập mã OTP ở bước thứ hai.</p>
+{% else %}
+  <p class="msg">
+    Quét mã QR <b>hoặc</b> nhập khóa thủ công (Secret Key) bên cạnh.
+    Sau đó nhập mã OTP 6 số hiện trên ứng dụng để bật 2FA.
+  </p>
 
-    {% if is_enabled %}
-        <div class="card-desc">
-            ✔ 2FA đã bật cho tài khoản <strong>{{ request.user.username }}</strong>.<br>
-            Tài khoản của bạn đang được bảo vệ bằng OTP 6 số thay đổi mỗi 30 giây.
-        </div>
+  <div class="grid">
+    <div class="box qr">
+      <h3>Quét QR</h3>
+      {% if qr_b64 %}
+        <img src="data:image/png;base64,{{ qr_b64 }}" alt="QR Code 2FA">
+      {% else %}
+        <p>(Không tạo được QR)</p>
+      {% endif %}
+      <div class="uri">{{ otp_uri }}</div>
+      <div class="hint" style="margin-top:8px;">Nếu muốn, bạn có thể dùng liên kết otpauth:// ở trên để nhập vào app.</div>
+    </div>
 
-        <div class="form-hint" style="margin-bottom:16px;">
-            Nếu bạn mất điện thoại, admin có thể reset secret OTP cho bạn trong trang quản trị.
-        </div>
+    <div class="box">
+      <h3>Thiết lập thủ công (không cần quét QR)</h3>
+      <div class="row">
+        <div>Tên tài khoản</div>
+        <div class="val">{{ account_name }}</div>
+      </div>
+      <div class="row">
+        <div>Issuer</div>
+        <div class="val">{{ issuer }}</div>
+      </div>
+      <div class="row">
+        <div>Secret (Base32)</div>
+        <div class="val" id="secretVal">{{ secret_key }}</div>
+      </div>
+      <div class="row">
+        <div>Thuật toán</div>
+        <div class="val">{{ algo|default:"SHA1" }}</div>
+      </div>
+      <div class="row">
+        <div>Số chữ số</div>
+        <div class="val">{{ digits|default:"6" }}</div>
+      </div>
+      <div class="row">
+        <div>Chu kỳ (giây)</div>
+        <div class="val">{{ period|default:"30" }}</div>
+      </div>
 
-        <div style="text-align:right;">
-            <a class="btn-primary" href="{% url 'accounts:dashboard' %}">Quay lại dashboard</a>
-        </div>
+      <p class="hint" style="margin-top:8px;">
+        Trên Google Authenticator: bấm <i>+</i> → <b>Nhập khóa thiết lập</b> (Enter a setup key) → điền <b>Tên tài khoản</b>, <b>Secret</b> và chọn <b>Thời gian dựa trên</b> (Time-based).
+      </p>
+    </div>
+  </div>
 
-    {% else %}
-        <div class="card-desc">
-            Quét mã QR bên dưới bằng Google Authenticator (hoặc app Authenticator khác),
-            sau đó nhập mã OTP 6 số để kích hoạt bảo vệ 2 lớp cho tài khoản.
-        </div>
+  <form method="post" style="margin-top:16px;">
+    {% csrf_token %}
+    <label for="id_otp_code">Mã OTP (6 số)</label>
+    {{ form.otp_code }}
 
-        {% if qr_b64 %}
-            <div style="text-align:center; margin-bottom:16px;">
-                <img src="data:image/png;base64,{{ qr_b64 }}" alt="QR Code 2FA"
-                    style="width:160px; height:160px; border-radius:12px;
-                           border:1px solid rgba(255,255,255,0.2);
-                           box-shadow:0 20px 40px rgba(0,0,0,0.8);">
+    {% if form.errors %} {{ form.errors }} {% endif %}
 
-                <div class="form-hint" style="margin-top:8px; word-break:break-all;">
-                    {{ otp_uri }}
-                </div>
-            </div>
-        {% endif %}
+    <button type="submit">Kích hoạt 2FA</button>
+    <div class="hint" style="margin-top:8px;">
+      Sau khi kích hoạt thành công, bạn sẽ được chuyển sang dashboard. Từ lần đăng nhập sau, bạn sẽ phải nhập OTP ở bước thứ hai.
+    </div>
+  </form>
+{% endif %}
 
-        {% if show_form %}
-            <form method="post" action="{% url 'accounts:enable_2fa' %}">
-                {% csrf_token %}
-
-                <div class="form-group">
-                    <label class="form-label" for="id_otp_code">Mã OTP 6 số</label>
-                    <input class="form-input"
-                           type="text"
-                           name="otp_code"
-                           id="id_otp_code"
-                           placeholder="123456"
-                           required>
-                    <div class="form-hint">Mã thay đổi mỗi 30 giây</div>
-                </div>
-
-                {% if messages %}
-                    {% for m in messages %}
-                        <div class="form-error">{{ m }}</div>
-                    {% endfor %}
-                {% endif %}
-
-                <div class="form-group" style="text-align:right;">
-                    <button class="btn-primary" type="submit">Kích hoạt 2FA</button>
-                </div>
-            </form>
-        {% endif %}
-
-        <div class="form-hint">
-            Sau khi kích hoạt thành công, bạn sẽ cần nhập OTP sau bước mật khẩu khi đăng nhập.
-        </div>
-    {% endif %}
-</div>
-{% endblock %}
+</body>
+</html>

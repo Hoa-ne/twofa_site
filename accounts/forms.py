@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 from .models import User
 
 
@@ -181,3 +182,9 @@ class ChangePasswordForm(forms.Form):
             validate_password(pw1, user=self.user)
 
         return cleaned
+        
+    def clean_email(self):
+        email = self.cleaned_data.get("email", "").strip()
+        if User.objects.filter(email__iexact=email).exists():
+            raise ValidationError("Email đã tồn tại trong hệ thống.")
+        return email
