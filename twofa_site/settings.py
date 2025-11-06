@@ -18,6 +18,7 @@ CSRF_TRUSTED_ORIGINS = [
     'https://nhom8.duckdns.org',
 ]
 INSTALLED_APPS = [
+    # ... (giữ nguyên) ...
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -30,6 +31,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    # ... (giữ nguyên) ...
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -42,6 +44,7 @@ MIDDLEWARE = [
 ROOT_URLCONF = "twofa_site.urls"
 
 TEMPLATES = [
+    # ... (giữ nguyên) ...
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [BASE_DIR / "templates"],
@@ -60,6 +63,7 @@ TEMPLATES = [
 WSGI_APPLICATION = "twofa_site.wsgi.application"
 
 DATABASES = {
+    # ... (giữ nguyên) ...
     "default": {
         "ENGINE": "django.db.backends.mysql",
         "NAME": os.getenv("DB_NAME"),
@@ -76,6 +80,7 @@ DATABASES = {
 AUTH_USER_MODEL = "accounts.User"
 
 AUTH_PASSWORD_VALIDATORS = [
+    # ... (giữ nguyên) ...
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 8}},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
@@ -87,17 +92,17 @@ TIME_ZONE = "Asia/Ho_Chi_Minh"
 USE_I18N = True
 USE_TZ = False
 
-# --- STATIC FILES ---
+# --- STATIC FILES (SỬA LẠI ĐƯỜNG DẪN) ---
 STATIC_URL = "/static/"
-# Nơi collect để Nginx serve (KHÔNG trùng với STATICFILES_DIRS)
 STATIC_ROOT = BASE_DIR / "static_collected"
-# Thư mục nguồn bạn đặt css/js (ví dụ auth.css)
-STATICFILES_DIRS = [ BASE_DIR / "twofa_site" / "static" ]
+# SỬA DÒNG DƯỚI ĐÂY:
+STATICFILES_DIRS = [ BASE_DIR / "static" ] # Bỏ "twofa_site/"
 
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+# ... (giữ nguyên cấu hình email) ...
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
@@ -111,8 +116,18 @@ LOGOUT_REDIRECT_URL = "/"
 
 SITE_NAME = os.getenv("SITE_NAME", "TwoFA Demo")
 SITE_DOMAIN = os.getenv("SITE_DOMAIN", "http://127.0.0.1:8000")
+
+# --- CẤU HÌNH SESSION VÀ BẢO MẬT ---
+# Thời hạn session (ví dụ 30 ngày) cho "Tin cậy thiết bị"
+SESSION_COOKIE_AGE = 2592000  # 30 * 24 * 60 * 60 = 30 ngày
+
+# Các cài đặt bảo mật (bạn đã có)
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
-
-# Tự động chuyển hướng HTTP sang HTTPS
 SECURE_SSL_REDIRECT = True
+
+# THÊM CÁC HEADER BẢO MẬT (quan trọng cho production)
+SECURE_HSTS_SECONDS = 31536000  # 1 năm
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+SECURE_CONTENT_TYPE_NOSNIFF = True

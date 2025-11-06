@@ -6,12 +6,7 @@ from .models import User
 
 
 class RegisterForm(forms.ModelForm):
-    """
-    Form đăng ký tài khoản mới.
-    - Gồm username, email, password1, password2
-    - Kiểm tra trùng mật khẩu
-    - Dùng set_password khi save()
-    """
+    # ... (giữ nguyên form RegisterForm) ...
     password1 = forms.CharField(
         label="Mật khẩu",
         widget=forms.PasswordInput(attrs={
@@ -49,7 +44,8 @@ class RegisterForm(forms.ModelForm):
         # validate độ mạnh mật khẩu (Django built-in rules)
         validate_password(pw1)
         return pw2
-
+    
+    # ... (giữ nguyên phần còn lại của RegisterForm) ...
     def save(self, commit=True):
         user = super().save(commit=False)
         pw = self.cleaned_data["password1"]
@@ -60,10 +56,7 @@ class RegisterForm(forms.ModelForm):
 
 
 class LoginForm(forms.Form):
-    """
-    Form đăng nhập bước 1 (username + password).
-    Sau khi clean() thành công, self.cleaned_data["user"] sẽ chứa đối tượng User đã auth.
-    """
+    # ... (giữ nguyên form LoginForm) ...
     username = forms.CharField(
         label="Tên đăng nhập",
         widget=forms.TextInput(attrs={
@@ -104,22 +97,27 @@ class LoginForm(forms.Form):
 
 class OTPForm(forms.Form):
     """
-    Form nhập mã OTP 6 số ở bước 2FA khi login.
+    Form nhập mã OTP 6 số (từ app hoặc email)
     """
     otp_code = forms.CharField(
         label="Mã OTP",
-        max_length=6,
+        max_length=8, # Tăng lên 8 để chấp nhận cả mã khôi phục (nếu gộp)
         widget=forms.TextInput(attrs={
             "class": "form-input",
             "placeholder": "Nhập mã OTP 6 số"
         })
     )
+    
+    # THÊM TRƯỜNG MỚI
+    remember_me = forms.BooleanField(
+        label="Tin cậy thiết bị này trong 30 ngày",
+        required=False,
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"})
+    )
 
 
 class Enable2FAConfirmForm(forms.Form):
-    """
-    Form xác nhận OTP sau khi người dùng quét QR để bật 2FA lần đầu.
-    """
+    # ... (giữ nguyên form Enable2FAConfirmForm) ...
     otp_code = forms.CharField(
         label="Mã OTP",
         max_length=6,
@@ -131,12 +129,7 @@ class Enable2FAConfirmForm(forms.Form):
 
 
 class ChangePasswordForm(forms.Form):
-    """
-    Form ép đổi mật khẩu sau sự cố (must_change_password=True).
-    - Người dùng phải nhập mật khẩu hiện tại
-    - Và đặt mật khẩu mới (2 lần)
-    - Có validate_password để đảm bảo độ mạnh
-    """
+    # ... (giữ nguyên form ChangePasswordForm) ...
     old_password = forms.CharField(
         label="Mật khẩu hiện tại",
         widget=forms.PasswordInput(attrs={
@@ -188,3 +181,24 @@ class ChangePasswordForm(forms.Form):
         if User.objects.filter(email__iexact=email).exists():
             raise ValidationError("Email đã tồn tại trong hệ thống.")
         return email
+
+# ----------------------------------
+# TẠO FORM MỚI CHO MÃ KHÔI PHỤC
+# ----------------------------------
+class BackupCodeForm(forms.Form):
+    """
+    Form nhập mã khôi phục (backup code)
+    """
+    code = forms.CharField(
+        label="Mã khôi phục",
+        widget=forms.TextInput(attrs={
+            "class": "form-input",
+            "placeholder": "VD: abcd-1234"
+        })
+    )
+    
+    remember_me = forms.BooleanField(
+        label="Tin cậy thiết bị này trong 30 ngày",
+        required=False,
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"})
+    )

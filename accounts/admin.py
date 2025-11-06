@@ -2,11 +2,14 @@ from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 from django.utils import timezone
 
-from .models import User, SecurityPolicy, SecurityLog
-from .utils import create_otp_secret
+# Sửa import: Bỏ 'create_otp_secret' từ utils
+from .models import User, SecurityPolicy, SecurityLog, BackupCode 
+# Sửa import: Lấy 'create_otp_secret' từ 'otp_algo'
+from .otp_algo import generate_base32_secret as create_otp_secret
 
 
 def _log(request, user, event, note=""):
+    # ... (giữ nguyên hàm _log) ...
     SecurityLog.objects.create(
         user=user,
         event=event,
@@ -15,18 +18,11 @@ def _log(request, user, event, note=""):
         created_at=timezone.now(),
     )
 
-
-# ====== ACTIONS TRÊN USER (chọn nhiều user trong danh sách) ======
+# ====== ACTIONS TRÊN USER (giữ nguyên) ======
 
 @admin.action(description="Reset OTP secret & buộc bật lại 2FA + ép đổi mật khẩu")
 def reset_otp_secret(modeladmin, request, queryset):
-    """
-    - phát otp_secret mới
-    - tắt is_2fa_enabled
-    - must_setup_2fa = True (bị ép quét lại QR khi login)
-    - failed_otp_attempts = 0, otp_locked=False
-    - must_change_password = True (ép đổi pass sau sự cố)
-    """
+    # ... (giữ nguyên action reset_otp_secret) ...
     count = 0
     for user in queryset:
         user.otp_secret = create_otp_secret()
@@ -36,6 +32,10 @@ def reset_otp_secret(modeladmin, request, queryset):
         user.otp_locked = False
         user.must_change_password = True
         user.save()
+        
+        # Xóa luôn backup codes cũ khi reset OTP
+        BackupCode.objects.filter(user=user).delete() 
+        
         _log(request, user, "RESET_OTP", note="Admin reset OTP secret + force pw reset")
         count += 1
     messages.success(
@@ -43,6 +43,7 @@ def reset_otp_secret(modeladmin, request, queryset):
         f"Đã reset OTP cho {count} user. Họ sẽ phải quét QR mới, đổi mật khẩu, và bật lại 2FA."
     )
 
+# ... (giữ nguyên các actions khác: force_require_2fa, disable_require_2fa, disable_2fa, unlock_otp, ...) ...
 
 @admin.action(description="Bật cờ 'bắt buộc 2FA' cho user được chọn (must_setup_2fa=True)")
 def force_require_2fa(modeladmin, request, queryset):
@@ -110,6 +111,7 @@ def clear_password_reset_flag(modeladmin, request, queryset):
 
 @admin.register(User)
 class UserAdmin(DjangoUserAdmin):
+    # ... (giữ nguyên fieldsets, list_display, list_filter, ...) ...
     fieldsets = (
         (None, {"fields": ("username", "password")}),
         ("Thông tin cá nhân", {"fields": ("first_name", "last_name", "email")}),
@@ -191,11 +193,11 @@ class UserAdmin(DjangoUserAdmin):
         clear_password_reset_flag,
     ]
 
-
-# ====== ADMIN CHO SECURITYPOLICY ======
+# ====== ADMIN CHO SECURITYPOLICY (giữ nguyên) ======
 
 @admin.register(SecurityPolicy)
 class SecurityPolicyAdmin(admin.ModelAdmin):
+    # ... (giữ nguyên) ...
     list_display = ("require_2fa_for_new_users", "updated_at")
 
     actions = ["force_all_users_require_2fa", "disable_all_users_require_2fa"]
@@ -218,11 +220,11 @@ class SecurityPolicyAdmin(admin.ModelAdmin):
             f"Đã bỏ ép buộc 2FA cho {updated} user."
         )
 
-
-# ====== ADMIN CHO SECURITYLOG (read-only) ======
+# ====== ADMIN CHO SECURITYLOG (read-only, giữ nguyên) ======
 
 @admin.register(SecurityLog)
 class SecurityLogAdmin(admin.ModelAdmin):
+    # ... (giữ nguyên) ...
     list_display = ("created_at", "user", "event", "ip", "note")
     list_filter = ("event", "user")
     search_fields = ("user__username", "ip", "note")
@@ -233,3 +235,19 @@ class SecurityLogAdmin(admin.ModelAdmin):
         return False  # không cho tạo tay
     def has_change_permission(self, request, obj=None):
         return False  # không cho sửa tay
+
+# ----------------------------------
+# TẠO ADMIN MỚI CHO MÃ KHÔI PHỤC
+# ----------------------------------
+@admin.register(BackupCode)
+class BackupCodeAdmin(admin.ModelAdmin):
+    list_display = ("user", "is_used", "created_at")
+    list_filter = ("is_used", "user")
+    search_fields = ("user__username",)
+    ordering = ("-created_at",)
+    readonly_fields = ("user", "code_hash", "is_used", "created_at")
+
+    def has_add_permission(self, request):
+        return False
+    def has_change_permission(self, request, obj=None):
+        return False

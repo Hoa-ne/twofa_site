@@ -1,7 +1,9 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone
-
+from django.conf import settings
+from django.contrib.auth.hashers import make_password, check_password
+import secrets
 
 class User(AbstractUser):
     ROLE_CHOICES = (
@@ -10,7 +12,6 @@ class User(AbstractUser):
         ("USER", "User"),
     )
 
-    # <<< THÊM DÒNG NÀY
     email = models.EmailField("email address", unique=True)
 
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default="USER")
@@ -41,6 +42,43 @@ class User(AbstractUser):
 
     def is_staff_role(self):
         return self.role in ["ADMIN", "STAFF"]
+    
+    def generate_backup_codes(self):
+        """
+        Tạo và lưu 10 mã khôi phục.
+        Trả về danh sách các mã (plaintext) để hiển thị cho user 1 LẦN.
+        """
+        # Xóa các mã cũ
+        BackupCode.objects.filter(user=self).delete()
+        
+        plaintext_codes = []
+        codes_to_create = []
+
+        for _ in range(10):
+            # Tạo mã 8 ký tự (VD: abcd-1234)
+            code = f"{secrets.token_hex(2)}-{secrets.token_hex(2)}" 
+            plaintext_codes.append(code)
+            
+            hashed_code = make_password(code) # Hash mã
+            codes_to_create.append(
+                BackupCode(user=self, code_hash=hashed_code, is_used=False)
+            )
+
+        BackupCode.objects.bulk_create(codes_to_create)
+        return plaintext_codes
+
+    def verify_backup_code(self, code: str) -> bool:
+        """
+        Kiểm tra một mã khôi phục (plaintext) có hợp lệ và chưa dùng không.
+        Nếu OK, đánh dấu là đã dùng.
+        """
+        unused_codes = BackupCode.objects.filter(user=self, is_used=False)
+        for backup_code in unused_codes:
+            if check_password(code, backup_code.code_hash):
+                backup_code.is_used = True
+                backup_code.save()
+                return True
+        return False
 
 
 class SecurityPolicy(models.Model):
@@ -72,6 +110,9 @@ class SecurityLog(models.Model):
         ("FORCED_2FA", "FORCED_2FA"),
         ("RESET_OTP", "RESET_OTP"),
         ("FORCE_PW_RESET", "FORCE_PW_RESET"),
+        # Thêm 2 event mới
+        ("EMAIL_OTP_SENT", "EMAIL_OTP_SENT"),
+        ("BACKUP_CODE_USED", "BACKUP_CODE_USED"),
     )
 
     user = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
@@ -103,3 +144,15 @@ class SecurityConfig(models.Model):
     def get_solo(cls):
         obj, _ = cls.objects.get_or_create(id=1)
         return obj
+
+# ----------------------------------
+# MODEL MỚI CHO MÃ KHÔI PHỤC
+# ----------------------------------
+class BackupCode(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="backup_codes")
+    code_hash = models.CharField(max_length=128, help_text="Mã khôi phục đã được hash")
+    is_used = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Backup code for {self.user.username} (Used: {self.is_used})"

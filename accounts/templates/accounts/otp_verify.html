@@ -31,7 +31,7 @@
             display: block;
             margin-bottom: 6px;
         }
-        input {
+        input[type="text"] { /* Sửa selector */
             width: 100%;
             padding: 10px 12px;
             font-size: 16px;
@@ -65,6 +65,33 @@
             margin-bottom: 12px;
             font-size: 14px;
         }
+        /* CSS cho checkbox */
+        .form-check {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .form-check input {
+            width: auto;
+            margin: 0;
+        }
+        .form-check label {
+            margin: 0;
+            font-weight: normal;
+            font-size: 14px;
+        }
+        /* CSS cho các link thay thế */
+        .alt-methods {
+            margin-top: 16px;
+            font-size: 14px;
+            text-align: center;
+            line-height: 1.6;
+        }
+        .alt-methods a {
+            text-decoration: none;
+            color: #0066cc;
+        }
     </style>
 </head>
 <body>
@@ -74,33 +101,53 @@
         Tài khoản: <strong>{{ username }}</strong>
     </div>
 
-    {# Khi user bị khóa vì sai OTP quá nhiều lần, view sẽ đặt locked=True và truyền error #}
+    {# Khi user bị khóa vì sai OTP quá nhiều lần #}
     {% if locked %}
         <div class="locked-box">
             {{ error }}
         </div>
         <p style="text-align:center; font-size:14px;">
-            Tài khoản tạm bị khóa vì nhập OTP sai quá nhiều lần.
+            Tài khoản tạm bị khóa vì nhập OTP sai quá {{ lockout_threshold|default:5 }} lần.
             Vui lòng liên hệ admin để mở khóa.
         </p>
     {% else %}
         <div class="box">
+            {# Hiển thị message (VD: đã gửi email) #}
+            {% if messages %}
+                {% for message in messages %}
+                    <div style="color: green; font-size: 14px; margin-bottom: 10px;">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+
             <form method="post">
                 {% csrf_token %}
 
-                <label for="id_otp_code">Mã OTP (6 số từ Google Authenticator)</label>
+                <label for="id_otp_code">Mã OTP (từ ứng dụng hoặc email)</label>
                 {{ form.otp_code }}
 
                 {% if form.errors %}
                     {{ form.errors }}
                 {% endif %}
 
+                <div class="form-check">
+                    {{ form.remember_me }}
+                    <label for="{{ form.remember_me.id_for_label }}">
+                        Tin cậy thiết bị này
+                    </label>
+                </div>
+
                 <button type="submit">Xác nhận</button>
+
+                <div class="alt-methods">
+                    <a href="{% url 'accounts:send_email_otp' %}">Gửi mã OTP qua email</a>
+                    <br>
+                    <a href="{% url 'accounts:backup_code_verify' %}">Sử dụng mã khôi phục</a>
+                </div>
             </form>
         </div>
 
         <p style="font-size:13px;color:#777;margin-top:12px;text-align:center;">
-            Mã OTP thay đổi mỗi 30 giây trong ứng dụng Authenticator. Nếu sai, hãy thử mã mới nhất.
+            Mã OTP thay đổi mỗi 30 giây trong ứng dụng Authenticator.
         </p>
     {% endif %}
 
