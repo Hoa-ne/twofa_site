@@ -437,3 +437,38 @@ select:focus {
     font-size: 1.1em;
     font-weight: 600;
 }
+/* ======== CSS CHO THREAD CARD (KHUNG ĐẸP HƠN) ======== */
+/* Áp dụng cho class "thread-card" mà bạn đang dùng */
+.thread-card {
+    display: block;
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md); /* Bo góc 8px */
+    margin-bottom: 12px; /* Khoảng cách giữa các khung */
+    text-decoration: none;
+    color: inherit;
+    background-color: var(--color-surface); /* Nền trắng */
+    transition: border-color .2s, background-color .2s;
+}
+
+/* Hiệu ứng khi di chuột vào */
+.thread-card:hover {
+    background-color: var(--color-surface-alt);
+    border-color: var(--color-accent); /* Đổi màu viền khi hover */
+}
+
+.thread-card .thread-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.thread-card:hover .thread-title {
+    color: var(--color-accent); /* Đổi màu tiêu đề khi hover */
+}
+
+.thread-card .thread-meta {
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+    margin-top: 4px;
+}

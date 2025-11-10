@@ -21,16 +21,36 @@
         • {{ thread.created_at|date:"H:i d/m/Y" }}
         • Chuyên mục: {{ thread.category.title }}
     </div>
-</div>
 
+    {% if request.user.is_staff_role %}
+    <div class="staff-actions" style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #eee;">
+        <h4 style="font-size: 14px; margin: 0 0 10px 0;">Hành động Quản trị:</h4>
+        <form action="{% url 'forum:thread_toggle_lock' thread.id %}" method="post" style="display: inline;">
+            {% csrf_token %}
+            {% if thread.locked %}
+                <button type="submit" class="btn-primary" style="background-color: #28a745; width: auto; border: none;">
+                    🔓 Mở khóa chủ đề
+                </button>
+            {% else %}
+                <button type="submit" class="btn-danger" style="width: auto;">
+                    🔒 Khóa chủ đề
+                </button>
+            {% endif %}
+        </form>
+    </div>
+    {% endif %}
+</div>
 <div class="card">
     <div class="card-header">Các trả lời</div>
 
     <div class="table-like-list">
         <div class="table-like-header">
-            <div style="grid-column: 1 / 3;">Người dùng</div> <div style="grid-column: 3 / 6;">Nội dung</div> </div>
+            <div style="grid-column: 1 / 3;">Người dùng</div>
+            <div style="grid-column: 3 / 6;">Nội dung</div>
+        </div>
 
-        {% for p in page_obj %} <div class="table-like-row" style="grid-template-columns: 120px 1fr 3fr 1fr 1fr; gap: 10px;">
+        {% for p in page_obj %}
+            <div class="table-like-row" style="grid-template-columns: 120px 1fr 3fr 1fr 1fr; gap: 10px;">
                 <div style="text-align: center;">
                     <a href="{% url 'accounts:profile_view' p.author.username %}">
                         <img src="{{ p.author.avatar.url }}" alt="avatar" style="width: 64px; height: 64px; border-radius: 50%;">
@@ -60,7 +80,7 @@
                 </div>
             </div>
         {% empty %}
-             <div class="table-like-row">Chưa có trả lời nào.</div>
+            <div class="table-like-row">Chưa có trả lời nào.</div>
         {% endfor %}
     </div>
 
@@ -80,7 +100,6 @@
         {% endif %}
     </div>
 </div>
-
 <div class="card form-wrapper" style="max-width:600px;">
     <div class="card-header">Gửi trả lời</div>
 
@@ -100,15 +119,12 @@
         {% else %}
             <form method="post">
                 {% csrf_token %}
-
                 <div class="form-group">
                     <label class="form-label">Nội dung trả lời</label>
-                    {{ form.content }}
-                    {% if form.content.errors %}
+                    {{ form.content }} {% if form.content.errors %}
                         <div class="form-error">{{ form.content.errors }}</div>
                     {% endif %}
                 </div>
-
                 <button type="submit" class="btn-primary">Trả lời</button>
             </form>
         {% endif %}

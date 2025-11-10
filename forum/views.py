@@ -9,7 +9,7 @@ from .models import Category, Thread, Post
 from .forms import ThreadCreateForm, PostForm
 from django.contrib.auth import get_user_model
 from django.contrib.auth import get_user_model
-
+from django.views.decorators.http import require_POST
 
 def home(request):
     """
@@ -179,4 +179,23 @@ def post_delete_view(request, pk):
         return redirect("forum:thread_detail", pk=thread.id)
     
     # Không nên xóa qua GET, trả về 403
-    return HttpResponseForbidden("Chỉ chấp nhận phương thức POST.")
+        return HttpResponseForbidden("Chỉ chấp nhận phương thức POST.")
+    
+@require_POST # Yêu cầu view này chỉ chấp nhận phương thức POST
+def toggle_lock_view(request, pk):
+    """
+    Cho phép Staff/Admin khóa hoặc mở khóa một chủ đề (Thread).
+    """
+    thread = get_object_or_404(Thread, pk=pk)
+    
+    # Kiểm tra quyền: Chỉ Staff hoặc Admin mới được làm
+    if not request.user.is_staff_role():
+        return HttpResponseForbidden("Bạn không có quyền thực hiện hành động này.")
+    
+    # Thực hiện hành động:
+    # Lật ngược trạng thái locked (True -> False, False -> True)
+    thread.locked = not thread.locked
+    thread.save()
+    
+    # Quay trở lại đúng trang chủ đề vừa rồi
+    return redirect("forum:thread_detail", pk=thread.id)
