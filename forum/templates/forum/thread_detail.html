@@ -40,51 +40,52 @@
     </div>
     {% endif %}
 </div>
-<div class="card">
-    <div class="card-header">Các trả lời</div>
+<div class="card" style="padding: 0;"> <div class="card-header" style="border-bottom: 1px solid var(--color-border);">
+        Các trả lời
+    </div>
 
-    <div class="table-like-list">
-        <div class="table-like-header">
-            <div style="grid-column: 1 / 3;">Người dùng</div>
-            <div style="grid-column: 3 / 6;">Nội dung</div>
-        </div>
-
+    <div class="post-list-container">
         {% for p in page_obj %}
-            <div class="table-like-row" style="grid-template-columns: 120px 1fr 3fr 1fr 1fr; gap: 10px;">
-                <div style="text-align: center;">
-                    <a href="{% url 'accounts:profile_view' p.author.username %}">
-                        <img src="{{ p.author.avatar.url }}" alt="avatar" style="width: 64px; height: 64px; border-radius: 50%;">
-                        <strong style="display: block; font-size: 14px;">{{ p.author.username }}</strong>
-                    </a>
+        <div class="post-layout">
+            
+            <div class="post-user-info">
+                <a href="{% url 'accounts:profile_view' p.author.username %}">
+                    <img src="{{ p.author.avatar.url }}" alt="avatar">
+                    <strong>{{ p.author.username }}</strong>
+                </a>
+            </div>
+            
+            <div class="post-content-wrap">
+                <div class="post-header">
+                    <span class="post-time">{{ p.created_at|date:"H:i, d/m/Y" }}</span>
+                    
+                    {% if request.user == p.author %}
+                    <span class="post-actions">
+                        <a href="{% url 'forum:post_edit' p.id %}?page={{ page_obj.number }}" style="color: #007bff;">Sửa</a>
+                        
+                        <form action="{% url 'forum:post_delete' p.id %}" method="post" style="display: inline;" 
+                              onsubmit="return confirm('Bạn có chắc muốn xóa bài này?');">
+                            {% csrf_token %}
+                            <button type="submit" style="color: #dc3545; background: none; border: none; cursor: pointer; padding: 0; margin-left: 5px;">Xóa</button>
+                        </form>
+                    </span>
+                    {% endif %}
                 </div>
                 
-                <div style="white-space:pre-line; color:var(--color-text-primary); grid-column: 2 / 6; border-left: 1px solid #eee; padding-left: 10px;">
-                    <div style="font-size: 12px; color: #777;">
-                        {{ p.created_at|date:"H:i d/m/Y" }}
-                        
-                        {% if request.user == p.author %}
-                        <span style="float: right;">
-                            <a href="{% url 'forum:post_edit' p.id %}?page={{ page_obj.number }}" style="font-size: 12px; color: #007bff;">Sửa</a>
-                            
-                            <form action="{% url 'forum:post_delete' p.id %}" method="post" style="display: inline;" 
-                                  onsubmit="return confirm('Bạn có chắc muốn xóa bài này?');">
-                                {% csrf_token %}
-                                <button type="submit" style="font-size: 12px; color: #dc3545; background: none; border: none; cursor: pointer; padding: 0; margin-left: 5px;">Xóa</button>
-                            </form>
-                        </span>
-                        {% endif %}
-                    </div>
-                    <div style="margin-top: 10px;">
-                        {{ p.content }}
-                    </div>
+                <div class="post-body">
+                    {{ p.content }}
                 </div>
+                
+                
             </div>
+            
+        </div>
         {% empty %}
-            <div class="table-like-row">Chưa có trả lời nào.</div>
+            <div style="padding: 1.25rem;">Chưa có trả lời nào.</div>
         {% endfor %}
     </div>
 
-    <div class="pagination" style="margin-top: 20px; text-align: center;">
+    <div class="pagination" style="margin-top: 20px; text-align: center; padding-bottom: 1.25rem;">
         {% if page_obj.has_previous %}
             <a href="?page=1">&laquo; Trang đầu</a>
             <a href="?page={{ page_obj.previous_page_number }}">Trang trước</a>

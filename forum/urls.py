@@ -20,4 +20,5 @@ urlpatterns = [
     path("post/<int:pk>/edit/", views.post_edit_view, name="post_edit"),
     path("post/<int:pk>/delete/", views.post_delete_view, name="post_delete"),
     path("thread/<int:pk>/toggle-lock/", views.toggle_lock_view, name="thread_toggle_lock"),
+    
 ]

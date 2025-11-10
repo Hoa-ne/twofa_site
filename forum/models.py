@@ -32,11 +32,17 @@ class Thread(models.Model):
 
 
 class Post(models.Model):
-    # ... (Giữ nguyên) ...
     thread = models.ForeignKey(Thread, on_delete=models.CASCADE, related_name="posts")
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    # THÊM TRƯỜNG MỚI NÀY
+    likes = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name="liked_posts", blank=True)
 
     def __str__(self):
         return f"Post by {self.author} on {self.thread}"
+        
+    # THÊM HÀM MỚI NÀY
+    def total_likes(self):
+        return self.likes.count()

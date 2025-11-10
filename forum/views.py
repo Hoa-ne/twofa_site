@@ -1,8 +1,9 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, JsonResponse
 from django.utils import timezone
 from django.core.paginator import Paginator # Thêm import này
+from django.contrib.auth import get_user_model
 
 from .models import Category, Thread, Post
 # Sửa import: Thêm PostForm
@@ -179,7 +180,7 @@ def post_delete_view(request, pk):
         return redirect("forum:thread_detail", pk=thread.id)
     
     # Không nên xóa qua GET, trả về 403
-        return HttpResponseForbidden("Chỉ chấp nhận phương thức POST.")
+    return HttpResponseForbidden("Chỉ chấp nhận phương thức POST.")
     
 @require_POST # Yêu cầu view này chỉ chấp nhận phương thức POST
 def toggle_lock_view(request, pk):
@@ -199,3 +200,27 @@ def toggle_lock_view(request, pk):
     
     # Quay trở lại đúng trang chủ đề vừa rồi
     return redirect("forum:thread_detail", pk=thread.id)
+    
+@login_required
+@require_POST # Chỉ chấp nhận POST (an toàn)
+def toggle_like_view(request, pk):
+    """
+    Xử lý logic Like/Unlike bằng AJAX.
+    """
+    post = get_object_or_404(Post, pk=pk)
+    
+    # Kiểm tra xem user đã like hay chưa
+    if post.likes.filter(id=request.user.id).exists():
+        # Nếu đã like -> Xóa like (Unlike)
+        post.likes.remove(request.user)
+        liked = False
+    else:
+        # Nếu chưa like -> Thêm like
+        post.likes.add(request.user)
+        liked = True
+        
+    # Trả về dữ liệu JSON cho JavaScript
+    return JsonResponse({
+        "liked": liked,
+        "total_likes": post.total_likes()
+    })

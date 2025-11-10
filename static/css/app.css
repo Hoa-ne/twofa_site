@@ -263,11 +263,9 @@ select:focus {
 /* ------- Tables / lists ------- */
 
 .table-like-list {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  overflow: hidden;
-  background-color: var(--color-bg);
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
 }
 
 .table-like-header {
@@ -471,4 +469,367 @@ select:focus {
     font-size: 0.9rem;
     color: var(--color-text-secondary);
     margin-top: 4px;
+}
+/* ======== CSS CHO FOOTER ======== */
+.app-footer {
+  background-color: var(--color-surface);
+  color: var(--color-text-secondary);
+  padding: 2rem 1rem;
+  margin-top: 3rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.app-footer-inner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  max-width: 1200px; /* Giống .page-wrapper */
+  margin: 0 auto;
+  gap: 2rem;
+}
+
+.footer-section {
+  flex: 1;
+  min-width: 200px;
+}
+
+.footer-section h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.footer-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-section ul li a {
+  text-decoration: none;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  padding: 0.25rem 0;
+  display: block;
+}
+.footer-section ul li a:hover {
+  color: var(--color-accent);
+}
+
+/* ======== CẢI THIỆN SIDEBAR (KHUNG ĐẸP HƠN) ======== */
+
+/* CSS cho "Chuyên mục" ở Sidebar */
+.sidebar-category-list a {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    text-decoration: none;
+    color: var(--color-text-primary);
+    font-size: 15px;
+    border-bottom: 1px solid #eee;
+}
+.sidebar-category-list a:last-child {
+  border-bottom: none;
+}
+.sidebar-category-list a:hover {
+    color: var(--color-accent);
+}
+.sidebar-category-list a .icon {
+    margin-right: 8px;
+    color: var(--color-accent);
+    font-size: 1.1em;
+}
+
+/* CSS cho "Hoạt động mới nhất" ở Sidebar */
+.sidebar-latest-activity a {
+    display: block;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+    text-decoration: none;
+    color: inherit;
+}
+.sidebar-latest-activity a:last-child {
+    border-bottom: none;
+}
+.sidebar-latest-activity .thread-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    word-break: break-word; /* Chống vỡ layout */
+}
+.sidebar-latest-activity .thread-meta {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    margin-top: 2px;
+}
+.sidebar-latest-activity a:hover .thread-title {
+    color: var(--color-accent);
+}
+
+/* CSS cho "Thống kê" ở Sidebar */
+.sidebar-stats-list div {
+    font-size: 15px;
+    color: var(--color-text-primary);
+    padding: 8px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+}
+.sidebar-stats-list div:last-child {
+  border-bottom: none;
+}
+.sidebar-stats-list strong {
+    color: var(--color-accent);
+    font-size: 1.1em;
+    font-weight: 600;
+}
+/* ======== CSS CHO GIAO DIỆN BÀI VIẾT (POST) ======== */
+
+/* Bỏ viền của .table-like-list cũ */
+.table-like-list {
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+/* Layout mới cho mỗi bài post */
+.post-layout {
+  display: grid;
+  grid-template-columns: 1fr; /* 1 cột trên mobile */
+  border-bottom: 1px solid var(--color-border);
+}
+
+@media (min-width: 768px) {
+  .post-layout {
+    /* 2 cột trên desktop: User Info (20%) | Post Content (80%) */
+    grid-template-columns: 160px 1fr; 
+  }
+}
+
+/* Cột 1: Thông tin người dùng (Avatar, Tên) */
+.post-user-info {
+  padding: 1.25rem 1rem;
+  text-align: center;
+  border-bottom: 1px dashed var(--color-border); /* Phân cách trên mobile */
+}
+@media (min-width: 768px) {
+  .post-user-info {
+    border-bottom: none;
+    border-right: 1px solid var(--color-border); /* Phân cách trên desktop */
+  }
+}
+
+.post-user-info a {
+  text-decoration: none;
+  color: inherit;
+}
+.post-user-info img {
+  width: 80px; /* Avatar lớn hơn */
+  height: 80px;
+  border-radius: 50%;
+  margin-bottom: 8px;
+}
+.post-user-info strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+/* Cột 2: Nội dung bài viết (Header, Content, Actions) */
+.post-content-wrap {
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column; /* Sắp xếp header, content, actions theo chiều dọc */
+}
+
+.post-header {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  border-bottom: 1px dashed var(--color-border);
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
+.post-header .post-time {
+  font-weight: 600;
+}
+.post-header .post-actions {
+  float: right;
+  font-size: 13px;
+}
+.post-header .post-actions a,
+.post-header .post-actions button {
+  font-size: 13px;
+  margin-left: 8px;
+}
+
+.post-body {
+  white-space: pre-line;
+  color: var(--color-text-primary);
+  line-height: 1.6;
+  flex-grow: 1; /* Đẩy footer xuống dưới */
+}
+
+.post-footer {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+}
+.post-footer .like-btn {
+  margin-right: 8px;
+}
+/* ======== CSS CHO GIAO DIỆN BÀI VIẾT (POST) ======== */
+
+/* Bỏ viền của .table-like-list cũ (nếu còn) */
+.table-like-list {
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+/* Layout mới cho mỗi bài post */
+.post-layout {
+  display: grid;
+  grid-template-columns: 1fr; /* 1 cột trên mobile */
+  border-bottom: 1px solid var(--color-border);
+}
+
+@media (min-width: 768px) {
+  .post-layout {
+    /* 2 cột trên desktop: User Info (160px) | Post Content (phần còn lại) */
+    grid-template-columns: 160px 1fr; 
+  }
+}
+
+/* Cột 1: Thông tin người dùng (Avatar, Tên) */
+.post-user-info {
+  padding: 1.25rem 1rem;
+  text-align: center;
+  border-bottom: 1px dashed var(--color-border); /* Phân cách trên mobile */
+}
+@media (min-width: 768px) {
+  .post-user-info {
+    border-bottom: none;
+    border-right: 1px solid var(--color-border); /* Phân cách trên desktop */
+  }
+}
+
+.post-user-info a {
+  text-decoration: none;
+  color: inherit;
+}
+.post-user-info img {
+  width: 80px; /* Avatar lớn hơn */
+  height: 80px;
+  border-radius: 50%;
+  margin-bottom: 8px;
+}
+.post-user-info strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+/* Cột 2: Nội dung bài viết (Header, Content, Actions) */
+.post-content-wrap {
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column; /* Sắp xếp header, content, actions theo chiều dọc */
+}
+
+.post-header {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  border-bottom: 1px dashed var(--color-border);
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
+.post-header .post-time {
+  font-weight: 600;
+}
+.post-header .post-actions {
+  float: right;
+  font-size: 13px;
+}
+.post-header .post-actions a,
+.post-header .post-actions button {
+  font-size: 13px;
+  margin-left: 8px;
+}
+
+.post-body {
+  white-space: pre-line;
+  color: var(--color-text-primary);
+  line-height: 1.6;
+  flex-grow: 1; /* Đẩy footer xuống dưới */
+}
+
+.post-footer {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+}
+.post-footer .like-btn {
+  margin-right: 8px;
+}
+/* ======== CSS SỬA LỖI HIỂN THỊ AVATAR UPLOAD ======== */
+
+/* Ẩn các dấu ngắt dòng <br> mặc định của Django */
+.file-upload-group br {
+    display: none; 
+}
+
+/* Ẩn dòng "Hiện nay: ..." (giải quyết yêu cầu của bạn) */
+/* Chúng ta vẫn thấy ảnh ở trên, nên link này không cần thiết */
+.file-upload-group a {
+    display: none;
+}
+
+/* Ghi đè class "form-input" cho widget file */
+.file-upload-group input[type="file"] {
+    display: block;
+    margin-top: 8px; /* Tạo khoảng cách với checkbox "Xóa" */
+}
+
+/* Định dạng lại checkbox "Xóa" cho đẹp hơn */
+.file-upload-group input[type="checkbox"] {
+    margin-right: 4px;
+    vertical-align: middle;
+}
+.file-upload-group label[for*="avatar-clear"] {
+    font-size: 14px;
+    color: var(--color-text-secondary);
+    font-weight: normal; /* Bỏ in đậm */
+}
+/* ======== CSS SỬA LỖI HIỂN THỊ AVATAR UPLOAD (Bản cập nhật) ======== */
+
+/* Ẩn các dấu ngắt dòng <br> mặc định của Django */
+.file-upload-group br {
+    display: none; 
+}
+
+/* Ẩn dòng "Hiện nay: ..." (đã làm ở bước trước) */
+.file-upload-group a {
+    display: none;
+}
+
+/* SỬA LỖI (THEO YÊU CẦU CỦA BẠN):
+  Ẩn checkbox "Xóa" và nhãn "Xóa"
+*/
+.file-upload-group input[type="checkbox"] {
+    display: none; 
+}
+.file-upload-group label[for*="avatar-clear"] {
+    display: none; 
+}
+
+
+/* Ghi đè class "form-input" cho widget file */
+.file-upload-group input[type="file"] {
+    display: block;
+    margin-top: 8px; 
 }
