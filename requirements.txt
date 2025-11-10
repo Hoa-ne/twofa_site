@@ -4,3 +4,4 @@ qrcode
 pillow
 python-dotenv
 mysql
+pillow

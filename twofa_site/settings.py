@@ -131,3 +131,7 @@ SECURE_HSTS_SECONDS = 31536000  # 1 năm
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
+
+# Cấu hình cho phép người dùng tải file lên (ví dụ: Avatar)
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"

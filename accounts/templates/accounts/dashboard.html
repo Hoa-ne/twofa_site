@@ -71,7 +71,12 @@
         {% if security_info.must_change_password %}
             <a class="btn-primary" style="width:auto;display:inline-block;"
                href="{% url 'accounts:change_password' %}">
-                Đổi mật khẩu ngay
+                Đổi mật khẩu ngay (Bắt buộc)
+            </a>
+        {% else %}
+            <a class="btn-primary" style="width:auto;display:inline-block; background-color: #5f6368;"
+               href="{% url 'accounts:change_password' %}">
+                Đổi mật khẩu
             </a>
         {% endif %}
 

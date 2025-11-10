@@ -10,6 +10,8 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.utils import timezone
 from datetime import timedelta # Thêm import
+from .forms import ProfileEditForm
+from django.core.paginator import Paginator # Sẽ dùng cho profile
 
 from .models import User, SecurityPolicy, SecurityLog, SecurityConfig
 # Sửa import: Thêm BackupCodeForm
@@ -508,7 +510,38 @@ def logout_view(request):
 
 @login_required
 def staff_only_view(request):
-    # ... (giữ nguyên hàm staff_only_view) ...
     if not request.user.is_staff_role():
         return HttpResponseForbidden("Bạn không có quyền STAFF.")
     return render(request, "accounts/dashboard.html", {"staff": True})
+
+# KHÔNG BỊ THỤT LỀ (SÁT LỀ TRÁI)
+@login_required
+def profile_edit_view(request):
+    """Trang cho phép user tự sửa avatar và bio."""
+    if request.method == "POST":
+        form = ProfileEditForm(request.POST, request.FILES, instance=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Cập nhật hồ sơ thành công!")
+            return redirect("accounts:profile_view", username=request.user.username)
+    else:
+        form = ProfileEditForm(instance=request.user)
+    
+    return render(request, "accounts/profile_edit.html", {"form": form})
+
+# KHÔNG BỊ THỤT LỀ (SÁT LỀ TRÁI)
+def profile_view(request, username):
+    """Trang hồ sơ công khai của người dùng."""
+    profile_user = get_object_or_404(User, username=username)
+    
+    # Lấy các bài đăng của user và phân trang
+    post_list = profile_user.post_set.all().order_by("-created_at")
+    paginator = Paginator(post_list, 10) # 10 bài/trang
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        "profile_user": profile_user,
+        "page_obj": page_obj
+    }
+    return render(request, "accounts/profile_view.html", context)

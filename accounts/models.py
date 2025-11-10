@@ -11,7 +11,8 @@ class User(AbstractUser):
         ("STAFF", "Staff"),
         ("USER", "User"),
     )
-
+    avatar = models.ImageField(upload_to="avatars/", null=True, blank=True, default="avatars/default.png")
+    bio = models.TextField(blank=True, null=True, help_text="Giới thiệu ngắn về bạn")
     email = models.EmailField("email address", unique=True)
 
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default="USER")

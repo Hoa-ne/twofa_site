@@ -5,21 +5,19 @@
 {% block content %}
 <div style="width:100%; max-width:800px;">
     <h2 style="font-size:16px; font-weight:600; color:var(--text-primary); margin-bottom:16px;">
-        Chủ đề mới nhất
+        Chuyên mục
     </h2>
 
-    {% for thread in threads %}
-        <a class="thread-card" href="{% url 'forum:thread_detail' thread.id %}">
-            <div class="thread-title">{{ thread.title }}</div>
+    {% for category in categories %}
+        <a class="thread-card" href="{{ category.get_absolute_url }}">
+            <div class="thread-title">{{ category.title }}</div>
             <div class="thread-meta">
-                Bởi {{ thread.author.username }}
-                • {{ thread.created_at|date:"H:i d/m/Y" }}
+                Nhấn để xem các chủ đề trong chuyên mục này.
             </div>
         </a>
     {% empty %}
         <div class="thread-card">
-            <div class="thread-title">Chưa có chủ đề nào.</div>
-            <div class="thread-meta">Hãy tạo bài đầu tiên!</div>
+            <div class="thread-title">Chưa có chuyên mục nào.</div>
         </div>
     {% endfor %}
 </div>

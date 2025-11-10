@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Chuyên mục: {{ category.title }}{% endblock %}
+
+{% block content %}
+<div style="width:100%; max-width:800px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h2 style="font-size:16px; font-weight:600; color:var(--text-primary); margin: 0;">
+            Chuyên mục: {{ category.title }}
+        </h2>
+        <a class_name="btn-small-accent" href="{% url 'forum:thread_create' %}" style="text-decoration: none;
+            background-color: var(--color-accent); color: #fff; padding: 6px 10px; border-radius: 6px; font-size: 14px;">
+            Tạo chủ đề mới
+        </a>
+    </div>
+
+    {% for thread in page_obj %}
+        <a class="thread-card" href="{{ thread.get_absolute_url }}">
+            <div class="thread-title">{{ thread.title }}</div>
+            <div class="thread-meta">
+                Bởi {{ thread.author.username }}
+                • {{ thread.created_at|date:"H:i d/m/Y" }}
+            </div>
+        </a>
+    {% empty %}
+        <div class="thread-card">
+            <div class="thread-title">Chưa có chủ đề nào.</div>
+            <div class="thread-meta">Hãy tạo bài đầu tiên!</div>
+        </div>
+    {% endfor %}
+
+    <div class="pagination" style="margin-top: 20px; text-align: center;">
+        {% if page_obj.has_previous %}
+            <a href="?page=1">&laquo; Trang đầu</a>
+            <a href="?page={{ page_obj.previous_page_number }}">Trang trước</a>
+        {% endif %}
+        
+        <span class="current">
+            Trang {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}.
+        </span>
+        
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}">Trang sau</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}">Trang cuối &raquo;</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

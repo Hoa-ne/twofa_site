@@ -68,4 +68,10 @@ urlpatterns = [
         ),
         name="password_reset_complete",
     ),
+    # Dashboard người dùng
+    path("dashboard/", views.dashboard_view, name="dashboard"),
+
+    # THÊM 2 URL MỚI NÀY
+    path("profile/edit/", views.profile_edit_view, name="profile_edit"),
+    path("profile/<str:username>/", views.profile_view, name="profile_view"),
 ]

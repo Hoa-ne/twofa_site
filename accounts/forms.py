@@ -202,3 +202,25 @@ class BackupCodeForm(forms.Form):
         required=False,
         widget=forms.CheckboxInput(attrs={"class": "form-check-input"})
     )
+    
+    # ... (Giữ nguyên RegisterForm, LoginForm, OTPForm, v.v.) ...
+
+# THÊM FORM MỚI NÀY VÀO CUỐI TỆP
+class ProfileEditForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ["avatar", "bio"]
+        widgets = {
+            "bio": forms.Textarea(attrs={
+                "class": "form-input",
+                "rows": 3,
+                "placeholder": "Giới thiệu ngắn về bạn..."
+            }),
+            "avatar": forms.ClearableFileInput(attrs={
+                "class": "form-input",
+            })
+        }
+        labels = {
+            "avatar": "Ảnh đại diện (Avatar)",
+            "bio": "Tiểu sử (Bio)",
+        }

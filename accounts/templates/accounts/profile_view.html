@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Hồ sơ của {{ profile_user.username }}{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 800px; margin: 0 auto;">
+    <div class="card-header" style="display: flex; align-items: center; gap: 20px;">
+        <img src="{{ profile_user.avatar.url }}" alt="Avatar" style="width: 100px; height: 100px; border-radius: 50%;">
+        <div>
+            <h1 style="font-size: 24px; margin: 0;">{{ profile_user.username }}</h1>
+            <p style="font-size: 14px; color: #555;">Tham gia: {{ profile_user.date_joined|date:"d/m/Y" }}</p>
+            {% if request.user == profile_user %}
+                <a href="{% url 'accounts:profile_edit' %}" 
+                   style="font-size: 14px; color: #007bff; text-decoration: none;">
+                   Chỉnh sửa hồ sơ
+                </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    {% if profile_user.bio %}
+    <div class="card-line" style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px;">
+        <strong>Tiểu sử:</strong>
+        <p style="white-space: pre-line; margin-top: 5px;">{{ profile_user.bio }}</p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="card" style="max-width: 800px; margin: 20px auto 0;">
+    <div class="card-header">Các bài viết gần đây của {{ profile_user.username }}</div>
+    
+    {% for post in page_obj %}
+        <div class="thread-card" style="padding: 10px; border-bottom: 1px solid #eee;">
+            <div class="thread-meta" style="font-size: 12px; margin-bottom: 5px;">
+                Đã đăng trong chủ đề: 
+                <a href="{{ post.thread.get_absolute_url }}" style="font-weight: bold;">
+                    {{ post.thread.title }}
+                </a>
+                • {{ post.created_at|date:"H:i d/m/Y" }}
+            </div>
+            <div class="thread-title" style="font-size: 15px; font-weight: normal; white-space: pre-line;">
+                {{ post.content|truncatewords:50 }}
+            </div>
+        </div>
+    {% empty %}
+        <div class="card-line">Người dùng này chưa có bài viết nào.</div>
+    {% endfor %}
+
+    <div class="pagination" style="margin-top: 20px; text-align: center;">
+        {% if page_obj.has_previous %}
+            <a href="?page=1">&laquo; Trang đầu</a>
+            <a href="?page={{ page_obj.previous_page_number }}">Trang trước</a>
+        {% endif %}
+        
+        <span class="current">
+            Trang {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}.
+        </span>
+        
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}">Trang sau</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}">Trang cuối &raquo;</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

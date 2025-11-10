@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Chỉnh sửa hồ sơ{% endblock %}
+
+{% block content %}
+<div class="card form-wrapper" style="max-width: 600px;">
+    <div class="card-header">Chỉnh sửa hồ sơ</div>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label class="form-label">{{ form.avatar.label }}</label>
+            {{ form.avatar }}
+            {% if form.avatar.errors %}
+                <div class="form-error">{{ form.avatar.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">{{ form.bio.label }}</label>
+            {{ form.bio }}
+            {% if form.bio.errors %}
+                <div class="form-error">{{ form.bio.errors }}</div>
+            {% endif %}
+        </div>
+
+        {% if form.non_field_errors %}
+            <div class="alert-error">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <button class="btn-primary" type="submit">Lưu thay đổi</button>
+    </form>
+</div>
+{% endblock %}
