@@ -7,14 +7,39 @@ from django.core.paginator import Paginator # Thêm import này
 from .models import Category, Thread, Post
 # Sửa import: Thêm PostForm
 from .forms import ThreadCreateForm, PostForm
+from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model
 
 
 def home(request):
     """
-    SỬA LẠI: Trang chủ diễn đàn giờ liệt kê Chuyên mục (Category).
+    SỬA LẠI: Trang chủ diễn đàn giờ là một "dashboard"
+    - Lấy danh sách chuyên mục
+    - Lấy các chủ đề mới nhất
+    - Lấy thống kê
     """
+    User = get_user_model() # Lấy model User
+    
     categories = Category.objects.all()
-    return render(request, "forum/home.html", {"categories": categories})
+    latest_threads = (
+        Thread.objects
+        .select_related("author", "category")
+        .order_by("-created_at")[:15] # Lấy 15 chủ đề mới nhất
+    )
+    
+    # Lấy thống kê
+    stats = {
+        "total_users": User.objects.count(),
+        "total_threads": Thread.objects.count(),
+        "total_posts": Post.objects.count(),
+    }
+    
+    context = {
+        "categories": categories,
+        "latest_threads": latest_threads,
+        "stats": stats,
+    }
+    return render(request, "forum/home.html", context)
 
 # TẠO VIEW MỚI
 @login_required

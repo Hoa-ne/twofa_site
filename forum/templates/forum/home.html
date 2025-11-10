@@ -3,22 +3,125 @@
 {% block title %}Diễn đàn{% endblock %}
 
 {% block content %}
-<div style="width:100%; max-width:800px;">
-    <h2 style="font-size:16px; font-weight:600; color:var(--text-primary); margin-bottom:16px;">
-        Chuyên mục
-    </h2>
+<style>
+    /* CSS cho layout 2 cột */
+    .home-grid {
+        display: grid;
+        grid-template-columns: 1fr; /* Mặc định 1 cột cho mobile */
+        gap: 24px;
+    }
 
-    {% for category in categories %}
-        <a class="thread-card" href="{{ category.get_absolute_url }}">
-            <div class="thread-title">{{ category.title }}</div>
-            <div class="thread-meta">
-                Nhấn để xem các chủ đề trong chuyên mục này.
+    @media (min-width: 768px) {
+        .home-grid {
+            /* 2 cột trên desktop: cột chính 70%, cột phụ 30% */
+            grid-template-columns: 2.5fr 1fr; 
+        }
+    }
+
+    .sidebar-card {
+        background-color: var(--color-surface);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-card);
+        border: 1px solid var(--color-border);
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+    .sidebar-header {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--color-text-primary);
+        margin-bottom: 1rem;
+    }
+    .category-list a {
+        display: block;
+        padding: 8px 0;
+        text-decoration: none;
+        color: var(--color-accent);
+        font-size: 15px;
+        border-bottom: 1px solid #eee;
+    }
+    .stats-list div {
+        font-size: 15px;
+        color: var(--color-text-secondary);
+        padding: 5px 0;
+        display: flex;
+        justify-content: space-between;
+    }
+</style>
+
+<div class="home-grid">
+    
+    <div class="main-content">
+        <h2 style="font-size:16px; font-weight:600; color:var(--text-primary); margin-bottom:16px;">
+            Hoạt động mới nhất
+        </h2>
+
+        {% for thread in latest_threads %}
+            <a class="thread-card" href="{{ thread.get_absolute_url }}">
+                <div class="thread-title">{{ thread.title }}</div>
+                <div class="thread-meta">
+                    Bởi 
+                    <strong>{{ thread.author.username }}</strong>
+                    trong
+                    <strong>{{ thread.category.title }}</strong>
+                    • {{ thread.created_at|date:"H:i d/m/Y" }}
+                </div>
+            </a>
+        {% empty %}
+            <div class="thread-card">
+                <div class="thread-title">Chưa có chủ đề nào.</div>
             </div>
-        </a>
-    {% empty %}
-        <div class="thread-card">
-            <div class="thread-title">Chưa có chuyên mục nào.</div>
+        {% endfor %}
+    </div>
+
+    <div class="sidebar">
+        
+        <div class="sidebar-card">
+            <div class="sidebar-header">Chuyên mục</div>
+            <div class="sidebar-category-list">
+                {% for category in categories %}
+                    <a href="{{ category.get_absolute_url }}">
+                        <span class="icon">📁</span> {{ category.title }}
+                    </a>
+                {% empty %}
+                    <small style="color:var(--color-text-secondary);">Chưa có chuyên mục.</small>
+                {% endfor %}
+            </div>
         </div>
-    {% endfor %}
-</div>
+        
+        <div class="sidebar-card">
+            <div class="sidebar-header">Hoạt động mới nhất</div>
+            <div class="sidebar-latest-activity">
+                {% for thread in latest_threads_sidebar %}
+                    <a href="{{ thread.get_absolute_url }}">
+                        <div class="thread-title">{{ thread.title }}</div>
+                        <div class="thread-meta">
+                            Bởi <strong>{{ thread.author.username }}</strong> • {{ thread.created_at|date:"d/m/Y" }}
+                        </div>
+                    </a>
+                {% empty %}
+                    <small style="color:var(--color-text-secondary);">Chưa có hoạt động nào.</small>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="sidebar-card">
+            <div class="sidebar-header">Thống kê</div>
+            <div class="sidebar-stats-list">
+                <div>
+                    <span>Thành viên:</span>
+                    <strong>{{ stats.total_users }}</strong>
+                </div>
+                <div>
+                    <span>Chủ đề:</span>
+                    <strong>{{ stats.total_threads }}</strong>
+                </div>
+                <div>
+                    <span>Bài viết:</span>
+                    <strong>{{ stats.total_posts }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
 {% endblock %}

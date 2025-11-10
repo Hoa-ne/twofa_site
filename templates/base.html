@@ -5,8 +5,6 @@
     <meta charset="utf-8">
     <title>{% block title %}TwoFA Site{% endblock %}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-
-    <!-- CSS chính -->
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
 </head>
 <body>
@@ -44,6 +42,41 @@
     {% block content %}
     {% endblock %}
 </main>
+<footer class="app-footer">
+    <div class="app-footer-inner">
+        <div class="footer-section">
+            <a href="/" class="brand">
+                <div class="brand-icon" style="background: none; color: var(--color-text-primary); font-weight: 600;">VOZ</div>
+                <span>Nhóm 8_2FA</span>
+            </a>
+            <p style="font-size: 14px; margin-top: 10px;">Diễn đàn trao đổi công nghệ và cuộc sống.</p>
+            <p style="font-size: 13px; color: #777;">&copy; 2025 Nhóm 8_2FA. Bảo lưu mọi quyền.</p>
+        </div>
+        <div class="footer-section">
+            <h4>Liên kết nhanh</h4>
+            <ul>
+                <li><a href="{% url 'forum:home' %}">Diễn đàn</a></li>
+                <li><a href="{% url 'forum:thread_create' %}">Tạo chủ đề</a></li>
+                {% if request.user.is_authenticated %}
+                    <li><a href="{% url 'accounts:profile_view' request.user.username %}">Hồ sơ của tôi</a></li>
+                {% else %}
+                    <li><a href="{% url 'accounts:login' %}">Đăng nhập</a></li>
+                {% endif %}
+            </ul>
+        </div>
+        <div class="footer-section">
+            <h4>Tài khoản</h4>
+            <ul>
+                {% if request.user.is_authenticated %}
+                    <li><a href="{% url 'accounts:change_password' %}">Đổi mật khẩu</a></li>
+                    <li><a href="{% url 'accounts:logout' %}">Đăng xuất</a></li>
+                {% else %}
+                    <li><a href="{% url 'accounts:register' %}">Đăng ký</a></li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</footer>
 
 </body>
 </html>

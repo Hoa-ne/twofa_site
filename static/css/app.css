@@ -321,3 +321,119 @@ select:focus {
   padding: .75rem 1rem;
   margin-bottom: 1rem;
 }
+/* ======== CSS CHO FOOTER ======== */
+.app-footer {
+  background-color: var(--color-surface);
+  color: var(--color-text-secondary);
+  padding: 2rem 1rem;
+  margin-top: 3rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.app-footer-inner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  max-width: 1200px; /* Giống .page-wrapper */
+  margin: 0 auto;
+  gap: 2rem;
+}
+
+.footer-section {
+  flex: 1;
+  min-width: 200px;
+}
+
+.footer-section h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.footer-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-section ul li a {
+  text-decoration: none;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  padding: 0.25rem 0;
+  display: block;
+}
+.footer-section ul li a:hover {
+  color: var(--color-accent);
+}
+
+/* ======== CẢI THIỆN SIDEBAR (KHUNG ĐẸP HƠN) ======== */
+
+/* CSS cho "Chuyên mục" ở Sidebar */
+.sidebar-category-list a {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    text-decoration: none;
+    color: var(--color-text-primary);
+    font-size: 15px;
+    border-bottom: 1px solid #eee;
+}
+.sidebar-category-list a:last-child {
+  border-bottom: none;
+}
+.sidebar-category-list a:hover {
+    color: var(--color-accent);
+}
+.sidebar-category-list a .icon {
+    margin-right: 8px;
+    color: var(--color-accent);
+    font-size: 1.1em;
+}
+
+/* CSS cho "Hoạt động mới nhất" ở Sidebar */
+.sidebar-latest-activity a {
+    display: block;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+    text-decoration: none;
+    color: inherit;
+}
+.sidebar-latest-activity a:last-child {
+    border-bottom: none;
+}
+.sidebar-latest-activity .thread-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    word-break: break-word; /* Chống vỡ layout */
+}
+.sidebar-latest-activity .thread-meta {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    margin-top: 2px;
+}
+.sidebar-latest-activity a:hover .thread-title {
+    color: var(--color-accent);
+}
+
+/* CSS cho "Thống kê" ở Sidebar */
+.sidebar-stats-list div {
+    font-size: 15px;
+    color: var(--color-text-primary);
+    padding: 8px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+}
+.sidebar-stats-list div:last-child {
+  border-bottom: none;
+}
+.sidebar-stats-list strong {
+    color: var(--color-accent);
+    font-size: 1.1em;
+    font-weight: 600;
+}
