@@ -96,7 +96,7 @@ def clear_password_reset_flag(modeladmin, request, queryset):
 @admin.register(User)
 class UserAdmin(DjangoUserAdmin):
     
-    # SỬA: Chỉ định 2 form tùy chỉnh của chúng ta
+    # Chỉ định 2 form tùy chỉnh
     form = UserAdminChangeForm
     add_form = UserAdminCreationForm
 
@@ -129,14 +129,15 @@ class UserAdmin(DjangoUserAdmin):
     )
 
     # add_fieldsets dùng cho trang THÊM MỚI user
+    # SỬA LẠI CHỖ NÀY
     add_fieldsets = (
         (None, {
             "classes": ("wide",),
             "fields": (
                 "username",
                 "email",
-                "password",  # ĐỔI LẠI THÀNH "password1"
-                "password2", # ĐỔI LẠI THÀNH "password2"
+                "password1",  # <--- ĐÃ SỬA THÀNH "password1" (KHỚP VỚI USERCREATIONFORM)
+                "password2",  # <--- "password2" (Đã đúng)
                 "role",
                 "is_staff",
                 "is_superuser",
