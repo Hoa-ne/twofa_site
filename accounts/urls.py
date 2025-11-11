@@ -2,8 +2,7 @@ from django.urls import path, reverse_lazy
 from django.contrib.auth import views as auth_views
 from . import views
 
-# MỚI: Import decorator và ratelimit
-from django.utils.decorators import method_decorator
+# SỬA: Xóa 'method_decorator'
 from django_ratelimit.decorators import ratelimit
 
 app_name = "accounts"
@@ -36,13 +35,12 @@ urlpatterns = [
 
     # --- Password reset flow ---
     
-    # SỬA: Thêm decorator ratelimit (2 lần/phút/IP để chống spam mail)
+    # SỬA LẠI CÁCH DÙNG DECORATOR
     path(
         "password-reset/",
-        method_decorator(
-            ratelimit(key='ip', rate='2/m', block=True), 
-            name='dispatch'
-        )(auth_views.PasswordResetView.as_view(
+        # Áp dụng decorator trực tiếp lên .as_view()
+        ratelimit(key='ip', rate='2/m', block=True)
+        (auth_views.PasswordResetView.as_view(
             template_name="accounts/password_reset_form.html",
             email_template_name="accounts/password_reset_email.txt",
             subject_template_name="accounts/password_reset_subject.txt",
@@ -73,7 +71,7 @@ urlpatterns = [
         ),
         name="password_reset_complete",
     ),
-    # Dashboard người dùng (đã có ở trên, dòng này có thể trùng, nhưng không sao)
+    # Dashboard người dùng
     path("dashboard/", views.dashboard_view, name="dashboard"),
 
     # URLS CHO PROFILE
