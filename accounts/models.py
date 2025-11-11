@@ -111,20 +111,25 @@ class SecurityLog(models.Model):
         ("FORCED_2FA", "FORCED_2FA"),
         ("RESET_OTP", "RESET_OTP"),
         ("FORCE_PW_RESET", "FORCE_PW_RESET"),
-        # Thêm 2 event mới
         ("EMAIL_OTP_SENT", "EMAIL_OTP_SENT"),
         ("BACKUP_CODE_USED", "BACKUP_CODE_USED"),
+        
+        # --- THÊM CÁC EVENT MỚI ---
+        ("PASSWORD_CHANGED", "PASSWORD_CHANGED"), # User tự đổi mật khẩu
+        ("ENABLE_2FA", "ENABLE_2FA"),           # User bật 2FA
+        ("DISABLE_2FA", "DISABLE_2FA"),         # Admin tắt 2FA
     )
 
     user = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
-    event = models.CharField(max_length=32, choices=EVENT_CHOICES)
+    # SỬA: Đổi tên 'event' thành 'event_type' cho khác biệt
+    event_type = models.CharField(max_length=32, choices=EVENT_CHOICES, db_column="event", null=True)
     ip = models.CharField(max_length=64, blank=True)
     note = models.TextField(blank=True)
     created_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
         who = self.user.username if self.user else "unknown-user"
-        return f"{self.created_at} {who} {self.event}"
+        return f"{self.created_at} {who} {self.event_type}"
 
 # Cấu hình bảo mật toàn cục (singleton)
 class SecurityConfig(models.Model):

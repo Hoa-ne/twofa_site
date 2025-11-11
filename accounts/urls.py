@@ -2,6 +2,10 @@ from django.urls import path, reverse_lazy
 from django.contrib.auth import views as auth_views
 from . import views
 
+# MỚI: Import decorator và ratelimit
+from django.utils.decorators import method_decorator
+from django_ratelimit.decorators import ratelimit
+
 app_name = "accounts"
 
 urlpatterns = [
@@ -30,22 +34,25 @@ urlpatterns = [
     # Khu vực staff/admin
     path("staff-area/", views.staff_only_view, name="staff_only"),
 
-    # --- Password reset flow (giữ nguyên) ---
+    # --- Password reset flow ---
+    
+    # SỬA: Thêm decorator ratelimit (2 lần/phút/IP để chống spam mail)
     path(
         "password-reset/",
-        # ... (giữ nguyên) ...
-        auth_views.PasswordResetView.as_view(
+        method_decorator(
+            ratelimit(key='ip', rate='2/m', block=True), 
+            name='dispatch'
+        )(auth_views.PasswordResetView.as_view(
             template_name="accounts/password_reset_form.html",
             email_template_name="accounts/password_reset_email.txt",
             subject_template_name="accounts/password_reset_subject.txt",
             from_email=None,
-            success_url=reverse_lazy("accounts:password_reset_done"),  # <— quan trọng
-        ),
+            success_url=reverse_lazy("accounts:password_reset_done"),
+        )),
         name="password_reset",
     ),
     path(
         "password-reset/done/",
-        # ... (giữ nguyên) ...
         auth_views.PasswordResetDoneView.as_view(
             template_name="accounts/password_reset_done.html"
         ),
@@ -53,25 +60,23 @@ urlpatterns = [
     ),
     path(
         "reset/<uidb64>/<token>/",
-        # ... (giữ nguyên) ...
         auth_views.PasswordResetConfirmView.as_view(
             template_name="accounts/password_reset_confirm.html",
-            success_url=reverse_lazy("accounts:password_reset_complete"),  # <— quan trọng
+            success_url=reverse_lazy("accounts:password_reset_complete"),
         ),
         name="password_reset_confirm",
     ),
     path(
         "reset/done/",
-        # ... (giữ nguyên) ...
         auth_views.PasswordResetCompleteView.as_view(
             template_name="accounts/password_reset_complete.html"
         ),
         name="password_reset_complete",
     ),
-    # Dashboard người dùng
+    # Dashboard người dùng (đã có ở trên, dòng này có thể trùng, nhưng không sao)
     path("dashboard/", views.dashboard_view, name="dashboard"),
 
-    # THÊM 2 URL MỚI NÀY
+    # URLS CHO PROFILE
     path("profile/edit/", views.profile_edit_view, name="profile_edit"),
     path("profile/<str:username>/", views.profile_view, name="profile_view"),
 ]

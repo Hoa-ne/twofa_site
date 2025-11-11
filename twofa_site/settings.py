@@ -28,6 +28,7 @@ INSTALLED_APPS = [
 
     "accounts",
     "forum",
+    "django_ratelimit", 
 ]
 
 MIDDLEWARE = [
@@ -37,6 +38,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django_ratelimit.middleware.RatelimitMiddleware", 
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -86,7 +88,17 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
-
+# --- CẤU HÌNH CACHE CHO DJANGO-RATELIMIT ---
+# Sử dụng REDIS làm cache (hỗ trợ atomic increment)
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",  # Dùng Redis ở local, DB số 1
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}
 LANGUAGE_CODE = "vi"
 TIME_ZONE = "Asia/Ho_Chi_Minh"
 USE_I18N = True
@@ -135,3 +147,5 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 # Cấu hình cho phép người dùng tải file lên (ví dụ: Avatar)
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+RATELIMIT_VIEW = 'accounts.views.ratelimited_error_view'
+

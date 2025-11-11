@@ -5,3 +5,6 @@ pillow
 python-dotenv
 mysql
 pillow
+django-ratelimit
+django-redis
+gunicorn

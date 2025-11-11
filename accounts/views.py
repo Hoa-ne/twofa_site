@@ -9,9 +9,12 @@ from django.conf import settings
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.utils import timezone
-from datetime import timedelta # Thêm import
+from datetime import timedelta 
 from .forms import ProfileEditForm
-from django.core.paginator import Paginator # Sẽ dùng cho profile
+from django.core.paginator import Paginator 
+
+# MỚI: Import decorator của ratelimit
+from django_ratelimit.decorators import ratelimit
 
 from .models import User, SecurityPolicy, SecurityLog, SecurityConfig
 # Sửa import: Thêm BackupCodeForm
@@ -31,12 +34,14 @@ import time
 import secrets
 import hmac
 
-
-def _log_event(user, event, request=None, note=""):
-    # ... (giữ nguyên hàm _log_event) ...
+# SỬA: Đổi tên hàm _log_event -> record_security_event
+def record_security_event(user, event_type, request=None, note=""):
+    """
+    Hàm trợ giúp mới để ghi lại nhật ký sự kiện bảo mật.
+    """
     SecurityLog.objects.create(
         user=user,
-        event=event,
+        event_type=event_type, # SỬA: Dùng trường 'event_type' mới
         ip=(request.META.get("REMOTE_ADDR", "") if request else ""),
         note=note,
         created_at=timezone.now(),
@@ -144,6 +149,8 @@ def register_view(request):
     return render(request, "accounts/register.html", {"form": form})
 
 
+# MỚI: Thêm decorator @ratelimit (5 lần/phút/IP)
+@ratelimit(key='ip', rate='5/m', block=True)
 def login_view(request):
     """
     Bước 1: đăng nhập bằng mật khẩu.
@@ -163,13 +170,10 @@ def login_view(request):
             if user.is_2fa_enabled:
                 
                 # SỬA ĐỔI: Kiểm tra "Tin cậy thiết bị"
-                # Nếu session '2fa_trusted' = True, user đã xác thực 2FA trên
-                # trình duyệt này và session chưa hết hạn. Bỏ qua bước OTP.
                 if request.session.get('2fa_trusted', False):
-                    # Phải login() lại để làm mới session, nhưng
-                    # _set_session_expiry sẽ giữ nguyên expiry cũ
                     remember_me = True # Giữ nguyên tin cậy
-                    _log_event(user, "LOGIN_SUCCESS", request=request, note="Login success (Trusted Device)")
+                    # SỬA: Dùng hàm log mới
+                    record_security_event(user, "LOGIN_SUCCESS", request=request, note="Login success (Trusted Device)")
                     return _perform_login(request, user, remember_me)
 
                 # Nếu không tin cậy, chuyển sang bước OTP
@@ -177,9 +181,9 @@ def login_view(request):
                 return redirect("accounts:otp_verify")
 
             # --- Login không 2FA ---
-            # Login tạm nếu cần ép enable-2fa (remember_me=False)
-            remember_me = False # Mặc định không tin cậy nếu không có 2FA
-            _log_event(user, "LOGIN_SUCCESS", request=request, note="Login without 2FA yet")
+            remember_me = False 
+            # SỬA: Dùng hàm log mới
+            record_security_event(user, "LOGIN_SUCCESS", request=request, note="Login without 2FA yet")
             
             # _perform_login đã bao gồm login() và các redirect
             return _perform_login(request, user, remember_me)
@@ -189,12 +193,11 @@ def login_view(request):
     return render(request, "accounts/login.html", {"form": form})
 
 
+# MỚI: Thêm decorator @ratelimit (5 lần/phút/IP)
+@ratelimit(key='ip', rate='5/m', block=True)
 def otp_verify_view(request):
     """
     Bước 2: nhập OTP
-    - Sửa đổi: Chấp nhận cả TOTP (app) và Email OTP (session).
-    - Sửa đổi: Xử lý "Tin cậy thiết bị".
-    - Sửa đổi: Đọc lockout_threshold từ SecurityConfig.
     """
     user_id = request.session.get("pre_2fa_user_id")
     if not user_id:
@@ -204,7 +207,8 @@ def otp_verify_view(request):
     config = SecurityConfig.get_solo()
     
     if user.otp_locked:
-        _log_event(user, "OTP_LOCKED", request=request, note="User tried while locked")
+        # SỬA: Dùng hàm log mới
+        record_security_event(user, "OTP_LOCKED", request=request, note="User tried while locked")
         return render(
             request,
             "accounts/otp_verify.html",
@@ -247,7 +251,8 @@ def otp_verify_view(request):
                 user.save()
 
                 note = "OTP (TOTP) ok" if totp_ok else "OTP (Email) ok"
-                _log_event(user, "OTP_SUCCESS", request=request, note=f"{note}, full login")
+                # SỬA: Dùng hàm log mới
+                record_security_event(user, "OTP_SUCCESS", request=request, note=f"{note}, full login")
 
                 # Đăng nhập và xử lý session tin cậy
                 return _perform_login(request, user, remember_me)
@@ -261,7 +266,8 @@ def otp_verify_view(request):
                     user.otp_locked = True
                     note_msg += " -> LOCKED"
                 user.save()
-                _log_event(user, "OTP_FAIL", request=request, note=note_msg)
+                # SỬA: Dùng hàm log mới
+                record_security_event(user, "OTP_FAIL", request=request, note=note_msg)
                 form.add_error("otp_code", "Mã OTP không hợp lệ hoặc đã hết hạn.")
     else:
         form = OTPForm()
@@ -277,8 +283,8 @@ def otp_verify_view(request):
     )
 
 # ----------------------------------
-# TẠO VIEW MỚI
-# ----------------------------------
+# MỚI: Thêm decorator @ratelimit (2 lần/phút/IP để chống spam mail)
+@ratelimit(key='ip', rate='2/m', block=True)
 def send_email_otp_view(request):
     """
     View này chỉ xử lý gửi Email OTP và redirect về 'otp_verify'.
@@ -312,7 +318,8 @@ def send_email_otp_view(request):
         )
         send_mail(subject, message, getattr(settings, "DEFAULT_FROM_EMAIL", None), [user.email], fail_silently=False)
         
-        _log_event(user, "EMAIL_OTP_SENT", request=request)
+        # SỬA: Dùng hàm log mới
+        record_security_event(user, "EMAIL_OTP_SENT", request=request)
         messages.success(request, f"Đã gửi mã OTP đến email {user.email}.")
     except Exception as e:
         messages.error(request, f"Lỗi khi gửi email: {e}")
@@ -320,8 +327,8 @@ def send_email_otp_view(request):
     return redirect("accounts:otp_verify")
 
 # ----------------------------------
-# TẠO VIEW MỚI
-# ----------------------------------
+# MỚI: Thêm decorator @ratelimit (5 lần/phút/IP)
+@ratelimit(key='ip', rate='5/m', block=True)
 def backup_code_verify_view(request):
     """
     Bước 2 (thay thế): Đăng nhập bằng mã khôi phục.
@@ -356,7 +363,8 @@ def backup_code_verify_view(request):
                 user.otp_locked = False
                 user.save()
                 
-                _log_event(user, "BACKUP_CODE_USED", request=request, note="Login success (Backup Code)")
+                # SỬA: Dùng hàm log mới
+                record_security_event(user, "BACKUP_CODE_USED", request=request, note="Login success (Backup Code)")
 
                 # Đăng nhập và xử lý session tin cậy
                 return _perform_login(request, user, remember_me)
@@ -369,7 +377,8 @@ def backup_code_verify_view(request):
                     user.otp_locked = True
                     note_msg += " -> LOCKED"
                 user.save()
-                _log_event(user, "OTP_FAIL", request=request, note=note_msg)
+                # SỬA: Dùng hàm log mới
+                record_security_event(user, "OTP_FAIL", request=request, note=note_msg)
                 form.add_error("code", "Mã khôi phục không hợp lệ hoặc đã được sử dụng.")
     else:
         form = BackupCodeForm()
@@ -413,6 +422,9 @@ def enable_2fa_view(request):
                 user.must_setup_2fa = False
                 user.save()
                 
+                # MỚI: Ghi log sự kiện bật 2FA
+                record_security_event(user, "ENABLE_2FA", request=request, note="User enabled 2FA (TOTP)")
+
                 # TẠO MÃ KHÔI PHỤC
                 plaintext_codes = user.generate_backup_codes()
                 # Lưu mã vào session để trang kế tiếp hiển thị
@@ -461,8 +473,9 @@ def enable_2fa_complete_view(request):
         {"backup_codes": backup_codes}
     )
 
-
+# MỚI: Thêm decorator @ratelimit (5 lần/phút/IP)
 @login_required
+@ratelimit(key='ip', rate='5/m', block=True)
 def change_password_view(request):
     # ... (giữ nguyên hàm change_password_view) ...
     user = request.user
@@ -473,6 +486,10 @@ def change_password_view(request):
             user.set_password(new_pw)
             user.must_change_password = False
             user.save()
+
+            # MỚI: Ghi log sự kiện đổi mật khẩu
+            record_security_event(user, "PASSWORD_CHANGED", request=request, note="User changed their own password")
+            
             login(request, user) # Đăng nhập lại để session mới
             return redirect("accounts:dashboard")
     else:
@@ -545,3 +562,9 @@ def profile_view(request, username):
         "page_obj": page_obj
     }
     return render(request, "accounts/profile_view.html", context)
+    
+def ratelimited_error_view(request, exception=None):
+    """
+    View để hiển thị khi một user bị ratelimit (HTTP 403).
+    """
+    return render(request, 'ratelimited.html', status=403)
