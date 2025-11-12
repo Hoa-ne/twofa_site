@@ -2,7 +2,7 @@ from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 from django.utils import timezone
 
-from .models import User, SecurityPolicy, SecurityLog, BackupCode 
+from .models import User, SecurityPolicy, SecurityLog, BackupCode, SecurityConfig
 from .otp_algo import generate_base32_secret as create_otp_secret
 
 # MỚI: Import 2 form admin tùy chỉnh
@@ -233,4 +233,16 @@ class BackupCodeAdmin(admin.ModelAdmin):
     def has_add_permission(self, request):
         return False
     def has_change_permission(self, request, obj=None):
+        return False
+        
+@admin.register(SecurityConfig)
+class SecurityConfigAdmin(admin.ModelAdmin):
+    list_display = ("enforce_2fa", "lockout_threshold", "otp_period")
+    
+    # Đảm bảo admin không thể "Thêm" một config mới (vì nó là singleton)
+    def has_add_permission(self, request):
+        return False
+        
+    # Đảm bảo admin không thể "Xóa" config
+    def has_delete_permission(self, request, obj=None):
         return False

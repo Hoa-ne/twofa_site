@@ -154,38 +154,55 @@ def register_view(request):
 def login_view(request):
     """
     Bước 1: đăng nhập bằng mật khẩu.
-    - Sửa đổi: Kiểm tra '2fa_trusted' session.
     """
     if request.method == "POST":
         form = LoginForm(request.POST)
         if form.is_valid():
             user = form.cleaned_data["user"]
 
-            config = SecurityPolicy.objects.first()
-            enforce_all = bool(getattr(config, "enforce_2fa_all", False))
+            # SỬA: Đổi tên biến này
+            policy = SecurityPolicy.objects.first()
+            # THÊM MỚI: Lấy cấu hình chung
+            config = SecurityConfig.get_solo() 
+
+            # SỬA: Dùng biến 'policy' ở đây
+            enforce_all = bool(getattr(policy, "enforce_2fa_all", False))
             if user.is_staff or user.is_superuser:
                 enforce_all = True
-
-            # KIỂM TRA 2FA
-            if user.is_2fa_enabled:
+            
+            # --- THÊM LOGIC MỚI: KIỂM TRA CẤU HÌNH TOÀN TRANG ---
+            # Nếu Admin đã BẬT "Bắt buộc 2FA" cho toàn trang
+            if config.enforce_2fa:
+                # 1. Nếu user chưa bật 2FA -> Ép họ vào trang bật 2FA
+                if not user.is_2fa_enabled:
+                    # Đăng nhập tạm (để vào trang enable_2fa)
+                    login(request, user) 
+                    request.session.pop("pre_2fa_user_id", None)
+                    messages.warning(request, "Hệ thống đang yêu cầu BẮT BUỘC 2FA. Vui lòng kích hoạt 2FA.")
+                    return redirect("accounts:enable_2fa")
                 
-                # SỬA ĐỔI: Kiểm tra "Tin cậy thiết bị"
+                # 2. Nếu user ĐÃ bật 2FA -> Chuyển sang bước OTP (như cũ)
                 if request.session.get('2fa_trusted', False):
-                    remember_me = True # Giữ nguyên tin cậy
-                    # SỬA: Dùng hàm log mới
+                    # ... (giữ nguyên logic trusted device) ...
                     record_security_event(user, "LOGIN_SUCCESS", request=request, note="Login success (Trusted Device)")
-                    return _perform_login(request, user, remember_me)
+                    return _perform_login(request, user, True)
+                
+                request.session["pre_2fa_user_id"] = user.id
+                return redirect("accounts:otp_verify")
+            
+            # --- LOGIC CŨ (Nếu config.enforce_2fa = False) ---
+            # (Hệ thống chạy bình thường, ai bật 2FA thì dùng, không thì thôi)
+            if user.is_2fa_enabled:
+                if request.session.get('2fa_trusted', False):
+                    record_security_event(user, "LOGIN_SUCCESS", request=request, note="Login success (Trusted Device)")
+                    return _perform_login(request, user, True)
 
-                # Nếu không tin cậy, chuyển sang bước OTP
                 request.session["pre_2fa_user_id"] = user.id
                 return redirect("accounts:otp_verify")
 
             # --- Login không 2FA ---
             remember_me = False 
-            # SỬA: Dùng hàm log mới
             record_security_event(user, "LOGIN_SUCCESS", request=request, note="Login without 2FA yet")
-            
-            # _perform_login đã bao gồm login() và các redirect
             return _perform_login(request, user, remember_me)
     else:
         form = LoginForm()
