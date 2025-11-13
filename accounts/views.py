@@ -34,6 +34,11 @@ import time
 import secrets
 import hmac
 
+from .forms import (
+    RegisterForm, LoginForm, OTPForm, Enable2FAConfirmForm, 
+    ChangePasswordForm, BackupCodeForm, Disable2FAForm # <-- THÊM MỚI
+)
+
 # SỬA: Đổi tên hàm _log_event -> record_security_event
 def record_security_event(user, event_type, request=None, note=""):
     """
@@ -579,6 +584,46 @@ def profile_view(request, username):
         "page_obj": page_obj
     }
     return render(request, "accounts/profile_view.html", context)
+
+@login_required
+@ratelimit(key='ip', rate='5/m', block=True)
+def disable_2fa_view(request):
+    """
+    Cho phép user tự tắt 2FA sau khi xác nhận mật khẩu và OTP.
+    """
+    user = request.user
+    if not user.is_2fa_enabled:
+        messages.error(request, "2FA chưa được bật.")
+        return redirect("accounts:dashboard")
+    
+    if request.method == "POST":
+        form = Disable2FAForm(user, request.POST)
+        if form.is_valid():
+            # Form đã kiểm tra mật khẩu, giờ chỉ cần kiểm tra OTP
+            code = form.cleaned_data["otp_code"]
+            ok = verify_totp(user.otp_secret, code, period=30, digits=6, algo="SHA1", window=1)
+
+            if ok:
+                # Tắt 2FA
+                user.is_2fa_enabled = False
+                user.otp_secret = None
+                user.failed_otp_attempts = 0
+                user.otp_locked = False
+                user.save()
+                
+                # Xóa backup codes
+                user.backup_codes.all().delete()
+                
+                # Ghi log
+                record_security_event(user, "DISABLE_2FA", request=request, note="User disabled 2FA (self)")
+                messages.success(request, "Xác thực hai lớp (2FA) đã được tắt.")
+                return redirect("accounts:dashboard")
+            else:
+                form.add_error("otp_code", "Mã OTP không hợp lệ.")
+    else:
+        form = Disable2FAForm(user)
+        
+    return render(request, "accounts/disable_2fa.html", {"form": form})
     
 def ratelimited_error_view(request, exception=None):
     """

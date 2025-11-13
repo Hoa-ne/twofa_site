@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Tắt xác thực hai lớp (2FA){% endblock %}
+{% block content %}
+
+<h1 class="page-heading">Tắt xác thực hai lớp (2FA)</h1>
+
+<div class="card form-wrapper">
+    <div class="card-header">Xác nhận tắt 2FA</div>
+
+    <div class="alert-error" style="margin-bottom: 1rem;">
+        <strong>Cảnh báo:</strong> Tắt 2FA sẽ làm giảm đáng kể bảo mật cho tài khoản của bạn. Chỉ tiếp tục nếu bạn hiểu rõ rủi ro.
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            <div class="alert-error">
+                {{ form.non_field_errors }}
+            </div>
+        {% endif %}
+
+        <div class="form-group">
+            <label class="form-label" for="{{ form.password.id_for_label }}">Mật khẩu hiện tại</label>
+            {{ form.password }}
+            {% if form.password.errors %}
+                <div class="form-error">{{ form.password.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="{{ form.otp_code.id_for_label }}">Mã OTP (từ ứng dụng)</label>
+            {{ form.otp_code }}
+            {% if form.otp_code.errors %}
+                <div class="form-error">{{ form.otp_code.errors }}</div>
+            {% endif %}
+        </div>
+
+        <button class="btn-danger" type="submit" style="width: 100%;">Xác nhận và Tắt 2FA</button>
+        <a href="{% url 'accounts:dashboard' %}" 
+           style="display: block; text-align: center; margin-top: 10px; font-size: 14px;">
+           Hủy
+        </a>
+    </form>
+</div>
+
+{% endblock %}

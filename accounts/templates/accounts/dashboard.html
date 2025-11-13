@@ -4,6 +4,15 @@
 
 <h1 class="page-heading">Tài khoản của {{ request.user.username }}</h1>
 
+{% if messages %}
+    {# Thêm khối này để hiển thị thông báo "Đã tắt 2FA thành công" #}
+    {% for message in messages %}
+        <div class="alert-info" style="margin-bottom: 1rem; background-color: #e6ffe6; border-color: #6c6; color: #056105;">
+            {{ message }}
+        </div>
+    {% endfor %}
+{% endif %}
+
 <div class="card">
     <div class="card-header">Tình trạng bảo mật</div>
 
@@ -80,10 +89,16 @@
             </a>
         {% endif %}
 
+        
         {% if not security_info.is_2fa_enabled %}
             <a class="btn-primary" style="width:auto;display:inline-block;margin-left:.5rem;"
                href="{% url 'accounts:enable_2fa' %}">
                 Bật 2FA / Quét QR
+            </a>
+        {% else %}
+            <a class="btn-danger" style="width:auto;display:inline-block;margin-left:.5rem;"
+               href="{% url 'accounts:disable_2fa' %}">
+                Tắt 2FA
             </a>
         {% endif %}
     </div>

@@ -250,3 +250,33 @@ class ProfileEditForm(forms.ModelForm):
             "avatar": "Ảnh đại diện (Avatar)",
             "bio": "Tiểu sử (Bio)",
         }
+
+class Disable2FAForm(forms.Form):
+    """
+    Form yêu cầu mật khẩu và OTP để xác nhận tắt 2FA.
+    """
+    password = forms.CharField(
+        label="Mật khẩu hiện tại",
+        widget=forms.PasswordInput(attrs={
+            "class": "form-input",
+            "placeholder": "Nhập mật khẩu của bạn"
+        })
+    )
+    otp_code = forms.CharField(
+        label="Mã OTP (từ ứng dụng)",
+        max_length=8, 
+        widget=forms.TextInput(attrs={
+            "class": "form-input",
+            "placeholder": "Nhập mã OTP 6 số"
+        })
+    )
+
+    def __init__(self, user, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+
+    def clean_password(self):
+        password = self.cleaned_data.get("password")
+        if not self.user.check_password(password):
+            raise forms.ValidationError("Mật khẩu không đúng.")
+        return password

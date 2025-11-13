@@ -2,7 +2,6 @@ from django.urls import path, reverse_lazy
 from django.contrib.auth import views as auth_views
 from . import views
 
-# SỬA: Xóa 'method_decorator'
 from django_ratelimit.decorators import ratelimit
 
 app_name = "accounts"
@@ -16,13 +15,14 @@ urlpatterns = [
     path("login/", views.login_view, name="login"),
     path("logout/", views.logout_view, name="logout"),
     
-    # URLS MỚI CHO 2FA
     path("otp/", views.otp_verify_view, name="otp_verify"),
     path("otp/send-email/", views.send_email_otp_view, name="send_email_otp"),
     path("otp/backup/", views.backup_code_verify_view, name="backup_code_verify"),
     
     path("enable-2fa/", views.enable_2fa_view, name="enable_2fa"),
     path("enable-2fa/complete/", views.enable_2fa_complete_view, name="enable_2fa_complete"),
+    # THÊM MỚI URL NÀY
+    path("disable-2fa/", views.disable_2fa_view, name="disable_2fa"),
 
     # Ép đổi mật khẩu sau sự cố bảo mật
     path("change-password/", views.change_password_view, name="change_password"),
@@ -34,11 +34,8 @@ urlpatterns = [
     path("staff-area/", views.staff_only_view, name="staff_only"),
 
     # --- Password reset flow ---
-    
-    # SỬA LẠI CÁCH DÙNG DECORATOR
     path(
         "password-reset/",
-        # Áp dụng decorator trực tiếp lên .as_view()
         ratelimit(key='ip', rate='2/m', block=True)
         (auth_views.PasswordResetView.as_view(
             template_name="accounts/password_reset_form.html",
@@ -71,7 +68,6 @@ urlpatterns = [
         ),
         name="password_reset_complete",
     ),
-    # Dashboard người dùng
     path("dashboard/", views.dashboard_view, name="dashboard"),
 
     # URLS CHO PROFILE
