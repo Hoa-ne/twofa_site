@@ -47,11 +47,50 @@
         display: flex;
         justify-content: space-between;
     }
+    
+    /* CSS MỚI CHO WELCOME BOX */
+    .welcome-box {
+        background-color: var(--color-surface);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-card);
+        border: 1px solid var(--color-border);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    .welcome-box h1 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-top: 0;
+        color: var(--color-text-primary);
+    }
+    .welcome-box p {
+        font-size: 0.95rem;
+        color: var(--color-text-secondary);
+        line-height: 1.6;
+    }
 </style>
 
 <div class="home-grid">
     
     <div class="main-content">
+
+        <div class="welcome-box">
+            <h1>Chào mừng đến với Diễn đàn Nhóm 8_2FA</h1>
+            {% if request.user.is_authenticated %}
+                <p>
+                    Chào mừng, <strong>{{ request.user.username }}</strong>.
+                    Hãy xem các hoạt động mới nhất bên dưới hoặc
+                    <a href="{% url 'forum:thread_create' %}">tạo một chủ đề mới</a>.
+                </p>
+            {% else %}
+                <p>
+                    Đây là dự án demo Khóa luận Cử nhân về An toàn thông tin,
+                    tập trung vào việc xây dựng cơ chế xác thực hai yếu tố (2FA) kết hợp OTP.
+                    Vui lòng <a href="{% url 'accounts:login' %}">Đăng nhập</a>
+                    hoặc <a href="{% url 'accounts:register' %}">Đăng ký</a> để tham gia.
+                </p>
+            {% endif %}
+        </div>
         <h2 style="font-size:16px; font-weight:600; color:var(--text-primary); margin-bottom:16px;">
             Hoạt động mới nhất
         </h2>

@@ -130,8 +130,8 @@ SITE_NAME = os.getenv("SITE_NAME", "TwoFA Demo")
 SITE_DOMAIN = os.getenv("SITE_DOMAIN", "http://127.0.0.1:8000")
 
 # --- CẤU HÌNH SESSION VÀ BẢO MẬT ---
-# Thời hạn session (ví dụ 30 ngày) cho "Tin cậy thiết bị"
-SESSION_COOKIE_AGE = 2592000  # 30 * 24 * 60 * 60 = 30 ngày
+# Thời hạn session (ví dụ 1 ngày) cho "Tin cậy thiết bị"
+SESSION_COOKIE_AGE = 86400  
 
 # Các cài đặt bảo mật (bạn đã có)
 SESSION_COOKIE_SECURE = True

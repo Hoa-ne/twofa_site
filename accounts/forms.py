@@ -85,8 +85,10 @@ class RegisterForm(forms.ModelForm):
 
     def clean_email(self):
         email = self.cleaned_data.get("email", "").strip()
-        if User.objects.filter(email__iexact=email).exists():
-            raise ValidationError("Email đã tồn tại trong hệ thống.")
+        # SỬA: Cho phép admin chỉnh sửa user mà không báo lỗi email (chỉ check khi đăng ký)
+        # Bỏ qua check email trùng lặp ở đây, UserAdminCreationForm sẽ tự xử lý
+        if self.instance.pk is None and User.objects.filter(email__iexact=email).exists():
+             raise ValidationError("Email đã tồn tại trong hệ thống.")
         return email
 
     def save(self, commit=True):
@@ -99,12 +101,11 @@ class RegisterForm(forms.ModelForm):
 
 
 class LoginForm(forms.Form):
-    # ... (giữ nguyên form LoginForm) ...
     username = forms.CharField(
         label="Tên đăng nhập",
         widget=forms.TextInput(attrs={
             "class": "form-input",
-            "placeholder": "Username"
+            "placeholder": "Tên đăng nhập" # <-- SỬA TỪ "Username"
         })
     )
     password = forms.CharField(
