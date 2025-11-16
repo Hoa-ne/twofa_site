@@ -5,7 +5,7 @@
 <h1 class="page-heading">Tài khoản của {{ request.user.username }}</h1>
 
 {% if messages %}
-    {# Thêm khối này để hiển thị thông báo "Đã tắt 2FA thành công" #}
+    {# Hiển thị thông báo "Đã tắt 2FA thành công" #}
     {% for message in messages %}
         <div class="alert-info" style="margin-bottom: 1rem; background-color: #e6ffe6; border-color: #6c6; color: #056105;">
             {{ message }}
@@ -76,7 +76,7 @@
         <strong>{{ security_info.last_login }}</strong>
     </div>
 
-    <div class="mt-24">
+    <div class="mt-24" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
         {% if security_info.must_change_password %}
             <a class="btn-primary" style="width:auto;display:inline-block;"
                href="{% url 'accounts:change_password' %}">
@@ -91,17 +91,22 @@
 
         
         {% if not security_info.is_2fa_enabled %}
-            <a class="btn-primary" style="width:auto;display:inline-block;margin-left:.5rem;"
+            <a class="btn-primary" style="width:auto;display:inline-block;"
                href="{% url 'accounts:enable_2fa' %}">
                 Bật 2FA / Quét QR
             </a>
         {% else %}
-            <a class="btn-danger" style="width:auto;display:inline-block;margin-left:.5rem;"
+            <a class="btn-danger" style="width:auto;display:inline-block;"
                href="{% url 'accounts:disable_2fa' %}">
                 Tắt 2FA
             </a>
         {% endif %}
-    </div>
+
+        <a class="btn-primary" style="width:auto;display:inline-block; background-color: #5f6368;"
+           href="{% url 'accounts:profile_edit' %}">
+            Sửa Hồ sơ (Avatar/Bio)
+        </a>
+        </div>
 </div>
 
 {% if request.user.is_staff_role %}
