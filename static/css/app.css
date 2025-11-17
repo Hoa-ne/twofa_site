@@ -40,7 +40,6 @@ body {
 }
 
 /* ------- Top Navbar ------- */
-/* ... (toàn bộ CSS cũ của bạn từ .app-navbar đến .alert-info giữ nguyên) ... */
 
 .app-navbar {
   background-color: var(--color-bg);
@@ -49,6 +48,7 @@ body {
   position: sticky;
   top: 0;
   z-index: 100;
+  transition: background-color 0.3s ease-in-out; /* Thêm hiệu ứng */
 }
 
 .app-navbar-inner {
@@ -253,6 +253,23 @@ select:focus {
   background-color: var(--color-accent-hover);
 }
 
+/* Style cho nút "Tạo tài khoản" (dùng chung cho các nút submit) */
+button {
+  width:100%;
+  margin-top:14px;
+  padding:12px 14px;
+  border:0;
+  border-radius:10px;
+  background: #111; /* Đổi thành màu đen */
+  color:#fff;
+  font-weight:600;
+  cursor:pointer
+}
+button:hover{
+    filter:brightness(1.05)
+}
+
+
 .btn-danger {
   display: inline-block;
   background-color: #d93025;
@@ -271,13 +288,11 @@ select:focus {
 }
 
 /* ------- Tables / lists ------- */
-
 .table-like-list {
   border: none;
   box-shadow: none;
   border-radius: 0;
 }
-
 .table-like-header {
   background-color: var(--color-surface-alt);
   border-bottom: 1px solid var(--color-border);
@@ -289,7 +304,6 @@ select:focus {
   grid-template-columns: 2fr 1fr 1fr;
   gap: .5rem;
 }
-
 .table-like-row {
   border-bottom: 1px solid var(--color-border);
   padding: .9rem 1rem;
@@ -299,17 +313,12 @@ select:focus {
   grid-template-columns: 2fr 1fr 1fr;
   gap: .5rem;
 }
-
 .table-like-row:last-child {
   border-bottom: 0;
 }
-
-/* ------- Misc spacing ------- */
-
 .mt-16 { margin-top: 1rem; }
 .mt-24 { margin-top: 1.5rem; }
 .center { text-align: center; }
-
 .alert-error {
   background-color: #fdecea;
   color: #d93025;
@@ -319,7 +328,6 @@ select:focus {
   padding: .75rem 1rem;
   margin-bottom: 1rem;
 }
-
 .alert-info {
   background-color: #e8f0fe;
   color: var(--color-text-primary);
@@ -329,7 +337,6 @@ select:focus {
   padding: .75rem 1rem;
   margin-bottom: 1rem;
 }
-/* ======== CSS CHO FOOTER ======== */
 .app-footer {
   background-color: var(--color-surface);
   color: var(--color-text-secondary);
@@ -337,7 +344,6 @@ select:focus {
   margin-top: 3rem;
   border-top: 1px solid var(--color-border);
 }
-
 .app-footer-inner {
   display: flex;
   flex-wrap: wrap;
@@ -346,12 +352,10 @@ select:focus {
   margin: 0 auto;
   gap: 2rem;
 }
-
 .footer-section {
   flex: 1;
   min-width: 200px;
 }
-
 .footer-section h4 {
   font-size: 1rem;
   font-weight: 600;
@@ -359,13 +363,11 @@ select:focus {
   margin-top: 0;
   margin-bottom: 1rem;
 }
-
 .footer-section ul {
   list-style: none;
   padding: 0;
   margin: 0;
 }
-
 .footer-section ul li a {
   text-decoration: none;
   font-size: 14px;
@@ -376,10 +378,6 @@ select:focus {
 .footer-section ul li a:hover {
   color: var(--color-accent);
 }
-
-/* ======== CẢI THIỆN SIDEBAR (KHUNG ĐẸP HƠN) ======== */
-
-/* CSS cho "Chuyên mục" ở Sidebar */
 .sidebar-category-list a {
     display: flex;
     align-items: center;
@@ -400,8 +398,6 @@ select:focus {
     color: var(--color-accent);
     font-size: 1.1em;
 }
-
-/* CSS cho "Hoạt động mới nhất" ở Sidebar */
 .sidebar-latest-activity a {
     display: block;
     padding: 10px 0;
@@ -426,8 +422,6 @@ select:focus {
 .sidebar-latest-activity a:hover .thread-title {
     color: var(--color-accent);
 }
-
-/* CSS cho "Thống kê" ở Sidebar */
 .sidebar-stats-list div {
     font-size: 15px;
     color: var(--color-text-primary);
@@ -445,8 +439,6 @@ select:focus {
     font-size: 1.1em;
     font-weight: 600;
 }
-/* ======== CSS CHO THREAD CARD (KHUNG ĐẸP HƠN) ======== */
-/* Áp dụng cho class "thread-card" mà bạn đang dùng */
 .thread-card {
     display: block;
     padding: 1rem 1.25rem;
@@ -458,29 +450,23 @@ select:focus {
     background-color: var(--color-surface); /* Nền trắng */
     transition: border-color .2s, background-color .2s;
 }
-
-/* Hiệu ứng khi di chuột vào */
 .thread-card:hover {
     background-color: var(--color-surface-alt);
     border-color: var(--color-accent); /* Đổi màu viền khi hover */
 }
-
 .thread-card .thread-title {
     font-size: 1.1rem;
     font-weight: 600;
     color: var(--color-text-primary);
 }
-
 .thread-card:hover .thread-title {
     color: var(--color-accent); /* Đổi màu tiêu đề khi hover */
 }
-
 .thread-card .thread-meta {
     font-size: 0.9rem;
     color: var(--color-text-secondary);
     margin-top: 4px;
 }
-/* ======== CSS CHO FOOTER ======== */
 .app-footer {
   background-color: var(--color-surface);
   color: var(--color-text-secondary);
@@ -488,7 +474,6 @@ select:focus {
   margin-top: 3rem;
   border-top: 1px solid var(--color-border);
 }
-
 .app-footer-inner {
   display: flex;
   flex-wrap: wrap;
@@ -497,12 +482,10 @@ select:focus {
   margin: 0 auto;
   gap: 2rem;
 }
-
 .footer-section {
   flex: 1;
   min-width: 200px;
 }
-
 .footer-section h4 {
   font-size: 1rem;
   font-weight: 600;
@@ -510,13 +493,11 @@ select:focus {
   margin-top: 0;
   margin-bottom: 1rem;
 }
-
 .footer-section ul {
   list-style: none;
   padding: 0;
   margin: 0;
 }
-
 .footer-section ul li a {
   text-decoration: none;
   font-size: 14px;
@@ -527,10 +508,6 @@ select:focus {
 .footer-section ul li a:hover {
   color: var(--color-accent);
 }
-
-/* ======== CẢI THIỆN SIDEBAR (KHUNG ĐẸP HƠN) ======== */
-
-/* CSS cho "Chuyên mục" ở Sidebar */
 .sidebar-category-list a {
     display: flex;
     align-items: center;
@@ -551,8 +528,6 @@ select:focus {
     color: var(--color-accent);
     font-size: 1.1em;
 }
-
-/* CSS cho "Hoạt động mới nhất" ở Sidebar */
 .sidebar-latest-activity a {
     display: block;
     padding: 10px 0;
@@ -577,8 +552,6 @@ select:focus {
 .sidebar-latest-activity a:hover .thread-title {
     color: var(--color-accent);
 }
-
-/* CSS cho "Thống kê" ở Sidebar */
 .sidebar-stats-list div {
     font-size: 15px;
     color: var(--color-text-primary);
@@ -596,30 +569,16 @@ select:focus {
     font-size: 1.1em;
     font-weight: 600;
 }
-/* ======== CSS CHO GIAO DIỆN BÀI VIẾT (POST) ======== */
-
-/* Bỏ viền của .table-like-list cũ */
-.table-like-list {
-  border: none;
-  box-shadow: none;
-  border-radius: 0;
-}
-
-/* Layout mới cho mỗi bài post */
 .post-layout {
   display: grid;
   grid-template-columns: 1fr; /* 1 cột trên mobile */
   border-bottom: 1px solid var(--color-border);
 }
-
 @media (min-width: 768px) {
   .post-layout {
-    /* 2 cột trên desktop: User Info (20%) | Post Content (80%) */
     grid-template-columns: 160px 1fr; 
   }
 }
-
-/* Cột 1: Thông tin người dùng (Avatar, Tên) */
 .post-user-info {
   padding: 1.25rem 1rem;
   text-align: center;
@@ -631,7 +590,6 @@ select:focus {
     border-right: 1px solid var(--color-border); /* Phân cách trên desktop */
   }
 }
-
 .post-user-info a {
   text-decoration: none;
   color: inherit;
@@ -648,14 +606,11 @@ select:focus {
   font-weight: 600;
   color: var(--color-accent);
 }
-
-/* Cột 2: Nội dung bài viết (Header, Content, Actions) */
 .post-content-wrap {
   padding: 1rem 1.25rem;
   display: flex;
   flex-direction: column; /* Sắp xếp header, content, actions theo chiều dọc */
 }
-
 .post-header {
   font-size: 13px;
   color: var(--color-text-secondary);
@@ -675,14 +630,12 @@ select:focus {
   font-size: 13px;
   margin-left: 8px;
 }
-
 .post-body {
   white-space: pre-line;
   color: var(--color-text-primary);
   line-height: 1.6;
   flex-grow: 1; /* Đẩy footer xuống dưới */
 }
-
 .post-footer {
   margin-top: 1.5rem;
   padding-top: 1rem;
@@ -691,30 +644,16 @@ select:focus {
 .post-footer .like-btn {
   margin-right: 8px;
 }
-/* ======== CSS CHO GIAO DIỆN BÀI VIẾT (POST) ======== */
-
-/* Bỏ viền của .table-like-list cũ (nếu còn) */
-.table-like-list {
-  border: none;
-  box-shadow: none;
-  border-radius: 0;
-}
-
-/* Layout mới cho mỗi bài post */
 .post-layout {
   display: grid;
   grid-template-columns: 1fr; /* 1 cột trên mobile */
   border-bottom: 1px solid var(--color-border);
 }
-
 @media (min-width: 768px) {
   .post-layout {
-    /* 2 cột trên desktop: User Info (160px) | Post Content (phần còn lại) */
     grid-template-columns: 160px 1fr; 
   }
 }
-
-/* Cột 1: Thông tin người dùng (Avatar, Tên) */
 .post-user-info {
   padding: 1.25rem 1rem;
   text-align: center;
@@ -726,7 +665,6 @@ select:focus {
     border-right: 1px solid var(--color-border); /* Phân cách trên desktop */
   }
 }
-
 .post-user-info a {
   text-decoration: none;
   color: inherit;
@@ -743,14 +681,11 @@ select:focus {
   font-weight: 600;
   color: var(--color-accent);
 }
-
-/* Cột 2: Nội dung bài viết (Header, Content, Actions) */
 .post-content-wrap {
   padding: 1rem 1.25rem;
   display: flex;
   flex-direction: column; /* Sắp xếp header, content, actions theo chiều dọc */
 }
-
 .post-header {
   font-size: 13px;
   color: var(--color-text-secondary);
@@ -770,14 +705,12 @@ select:focus {
   font-size: 13px;
   margin-left: 8px;
 }
-
 .post-body {
   white-space: pre-line;
   color: var(--color-text-primary);
   line-height: 1.6;
   flex-grow: 1; /* Đẩy footer xuống dưới */
 }
-
 .post-footer {
   margin-top: 1.5rem;
   padding-top: 1rem;
@@ -786,26 +719,16 @@ select:focus {
 .post-footer .like-btn {
   margin-right: 8px;
 }
-/* ======== CSS SỬA LỖI HIỂN THỊ AVATAR UPLOAD ======== */
-
-/* Ẩn các dấu ngắt dòng <br> mặc định của Django */
 .file-upload-group br {
     display: none; 
 }
-
-/* Ẩn dòng "Hiện nay: ..." (giải quyết yêu cầu của bạn) */
-/* Chúng ta vẫn thấy ảnh ở trên, nên link này không cần thiết */
 .file-upload-group a {
     display: none;
 }
-
-/* Ghi đè class "form-input" cho widget file */
 .file-upload-group input[type="file"] {
     display: block;
     margin-top: 8px; /* Tạo khoảng cách với checkbox "Xóa" */
 }
-
-/* Định dạng lại checkbox "Xóa" cho đẹp hơn */
 .file-upload-group input[type="checkbox"] {
     margin-right: 4px;
     vertical-align: middle;
@@ -815,30 +738,18 @@ select:focus {
     color: var(--color-text-secondary);
     font-weight: normal; /* Bỏ in đậm */
 }
-/* ======== CSS SỬA LỖI HIỂN THỊ AVATAR UPLOAD (Bản cập nhật) ======== */
-
-/* Ẩn các dấu ngắt dòng <br> mặc định của Django */
 .file-upload-group br {
     display: none; 
 }
-
-/* Ẩn dòng "Hiện nay: ..." (đã làm ở bước trước) */
 .file-upload-group a {
     display: none;
 }
-
-/* SỬA LỖI (THEO YÊU CẦU CỦA BẠN):
-  Ẩn checkbox "Xóa" và nhãn "Xóa"
-*/
 .file-upload-group input[type="checkbox"] {
     display: none; 
 }
 .file-upload-group label[for*="avatar-clear"] {
     display: none; 
 }
-
-
-/* Ghi đè class "form-input" cho widget file */
 .file-upload-group input[type="file"] {
     display: block;
     margin-top: 8px; 
@@ -880,4 +791,133 @@ button.password-toggle-btn:hover {
     /* padding-right mặc định là .75rem (12px) */
     padding-right: 60px; /* Tăng padding phải để chừa chỗ cho nút "Hiện" */
     padding-left: .75rem; /* Giữ padding trái mặc định */
+}
+
+/* --- (THÊM MỚI) HERO SLIDESHOW (TRANG CHỦ) --- */
+.hero-section {
+    position: relative; /* Gốc cho các lớp phủ */
+    
+    /* Làm cho nó tràn ra toàn bộ chiều rộng */
+    width: 100vw; 
+    left: 50%;
+    right: 50%;
+    margin-left: -50vw;
+    margin-right: -50vw;
+    
+    height: 400px; /* Chiều cao của slideshow */
+    background-color: #222; /* Màu nền dự phòng */
+    overflow: hidden;
+    /* margin-top: -2rem; (Đã bị .page-home .hero-section ghi đè) */
+    margin-bottom: 2rem;
+}
+
+.hero-slideshow .slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    opacity: 0;
+    /* Hiệu ứng mờ 1 giây */
+    transition: opacity 1.0s ease-in-out;
+    will-change: opacity;
+}
+
+/* Lớp 'active' sẽ làm ảnh hiện ra */
+.hero-slideshow .slide.active {
+    opacity: 1;
+}
+
+/* Lớp phủ mờ (làm chữ nổi bật) */
+.hero-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to right, rgba(0,0,0,0.6), rgba(0,0,0,0.2));
+    z-index: 1;
+}
+
+/* Nội dung text trên Hero */
+.hero-content {
+    position: relative;
+    z-index: 2;
+    color: #fff;
+    max-width: 1200px; /* Giống .page-wrapper */
+    margin: 0 auto;
+    padding: 0 1rem;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.hero-content h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0;
+    text-shadow: 2px 2px 8px rgba(0,0,0,0.5);
+}
+
+.hero-content p {
+    font-size: 1.1rem;
+    max-width: 500px;
+    margin-top: 1rem;
+    text-shadow: 1px 1px 4px rgba(0,0,0,0.5);
+}
+
+/* --- (THÊM MỚI) CSS CHO NAVBAR TRONG SUỐT (TRANG CHỦ) --- */
+
+/* Áp dụng khi body có class 'page-home' */
+.page-home .app-navbar {
+    background-color: transparent; /* Làm trong suốt */
+    box-shadow: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2); /* Viền mờ */
+    position: absolute; /* Đè lên trên nội dung */
+    width: 100%;
+    top: 0;
+    left: 0;
+}
+/* Đổi màu chữ trên navbar (vì nền tối) */
+.page-home .app-navbar .brand,
+.page-home .app-navbar .nav-links a {
+    color: #ffffff;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+}
+.page-home .app-navbar .brand-icon {
+    background-color: rgba(255, 255, 255, 0.2); /* Icon mờ */
+    border: 1px solid rgba(255, 255, 255, 0.5);
+}
+/* Đổi màu nền nút "Đăng xuất" (hoặc "Đăng nhập") */
+.page-home .app-navbar .btn-small-accent {
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    color: #ffffff !important;
+}
+.page-home .app-navbar .btn-small-accent:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+/* Đẩy toàn bộ nội dung trang (page-wrapper) lên trên cùng */
+.page-home .page-wrapper {
+    max-width: 100%; /* Cho phép hero-section tràn 100% */
+    padding: 0; /* Xóa padding mặc định */
+    margin: 0;
+}
+/* Sửa lại hero-section để nó nằm trên cùng */
+.page-home .hero-section {
+    margin-top: 0; /* Xóa margin-top cũ */
+    height: 450px; /* Tăng chiều cao 1 chút để bù cho navbar */
+}
+/* Sửa lại hero-content để nó có padding từ trên xuống (tránh bị navbar che) */
+.page-home .hero-content {
+     padding-top: 100px; /* Đẩy chữ xuống dưới navbar */
+}
+/* Nội dung grid (thread, sidebar) phải quay về layout cũ */
+.page-home .home-grid {
+    max-width: 1200px;
+    margin: 2rem auto 0; /* Căn giữa và tạo khoảng cách với hero */
+    padding: 0 1rem; /* Thêm padding lại cho nội dung bên dưới */
 }
