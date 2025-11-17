@@ -6,6 +6,14 @@
 
 <div class="card form-wrapper">
 
+    {% if messages %}
+        {% for message in messages %}
+            {# Dùng style của 'dashboard.html' cho thông báo thành công #}
+            <div class="alert-info" style="margin-bottom: 1rem; background-color: #e6ffe6; border-color: #6c6; color: #056105;">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
     <div class="card-header">Nhập thông tin tài khoản</div>
 
     {% if form.non_field_errors %}

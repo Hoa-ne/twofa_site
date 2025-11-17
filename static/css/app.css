@@ -14,6 +14,10 @@
   --shadow-card: 0 8px 24px rgba(0,0,0,.06);
   --shadow-nav: 0 2px 8px rgba(0,0,0,.07);
   --font-stack: system-ui, -apple-system, BlinkMacSystemFont, "Roboto", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  
+  /* MÀU NỀN MỚI KIỂU AWS */
+  --aws-bg-light: #f6f7f9;
+  --aws-bg-dark: #e4e6eb;
 }
 
 * {
@@ -23,7 +27,12 @@
 
 body {
   margin: 0;
-  background-color: var(--color-surface-alt);
+  /* SỬA LẠI: Thêm background gradient */
+  background-color: var(--aws-bg-light);
+  background-image: radial-gradient(circle at 1px 1px, var(--aws-bg-dark) 1px, var(--aws-bg-light) 0);
+  background-size: 20px 20px;
+  /* --- */
+  
   color: var(--color-text-primary);
   font-family: var(--font-stack);
   font-size: 16px;
@@ -31,6 +40,7 @@ body {
 }
 
 /* ------- Top Navbar ------- */
+/* ... (toàn bộ CSS cũ của bạn từ .app-navbar đến .alert-info giữ nguyên) ... */
 
 .app-navbar {
   background-color: var(--color-bg);
@@ -832,4 +842,42 @@ select:focus {
 .file-upload-group input[type="file"] {
     display: block;
     margin-top: 8px; 
+}
+
+/* --- (SỬA LẠI) CSS NÚT HIỂN THỊ MẬT KHẨU (BÊN PHẢI) --- */
+.password-wrapper {
+    position: relative; 
+}
+
+/* Dùng 'button.password-toggle-btn' để tăng độ ưu tiên (specificity) */
+button.password-toggle-btn {
+    /* Vị trí */
+    position: absolute;
+    right: 1px; /* Đặt ở bên PHẢI */
+    left: auto; /* Xóa thuộc tính 'left' cũ */
+    top: 36px; /* Căn theo chiều dọc (sau label) */
+    
+    /* Ghi đè style của 'button' chung */
+    width: auto; 
+    margin: 0;
+    padding: 8px 12px; /* Làm cho nút nhỏ hơn */
+    background: none;
+    color: var(--color-text-secondary);
+    border: none;
+    
+    /* Ghi đè style hover của 'button' chung */
+    filter: none;
+}
+
+button.password-toggle-btn:hover {
+    background: var(--color-surface-alt); /* Hiệu ứng hover nhẹ */
+    color: var(--color-text-primary);
+}
+
+/* Khi nút ở bên PHẢI, phải đẩy chữ trong ô input sang trái */
+.password-wrapper input[type="password"],
+.password-wrapper input[type="text"] {
+    /* padding-right mặc định là .75rem (12px) */
+    padding-right: 60px; /* Tăng padding phải để chừa chỗ cho nút "Hiện" */
+    padding-left: .75rem; /* Giữ padding trái mặc định */
 }

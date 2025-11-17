@@ -73,6 +73,12 @@ class RegisterForm(forms.ModelForm):
                 "placeholder": "Email"
             }),
         }
+        
+        # --- THÊM MỚI KHỐI NÀY ĐỂ XÓA HELP TEXT ---
+        help_texts = {
+            'username': '',
+        }
+        # --- KẾT THÚC SỬA ---
 
     def clean_password2(self):
         pw1 = self.cleaned_data.get("password1")
@@ -85,8 +91,7 @@ class RegisterForm(forms.ModelForm):
 
     def clean_email(self):
         email = self.cleaned_data.get("email", "").strip()
-        # SỬA: Cho phép admin chỉnh sửa user mà không báo lỗi email (chỉ check khi đăng ký)
-        # Bỏ qua check email trùng lặp ở đây, UserAdminCreationForm sẽ tự xử lý
+        # Chỉ kiểm tra email trùng lặp khi tạo user mới (pk is None)
         if self.instance.pk is None and User.objects.filter(email__iexact=email).exists():
              raise ValidationError("Email đã tồn tại trong hệ thống.")
         return email
@@ -101,11 +106,12 @@ class RegisterForm(forms.ModelForm):
 
 
 class LoginForm(forms.Form):
+    # ... (giữ nguyên form LoginForm) ...
     username = forms.CharField(
         label="Tên đăng nhập",
         widget=forms.TextInput(attrs={
             "class": "form-input",
-            "placeholder": "Tên đăng nhập" # <-- SỬA TỪ "Username"
+            "placeholder": "Tên đăng nhập" 
         })
     )
     password = forms.CharField(
@@ -253,9 +259,7 @@ class ProfileEditForm(forms.ModelForm):
         }
 
 class Disable2FAForm(forms.Form):
-    """
-    Form yêu cầu mật khẩu và OTP để xác nhận tắt 2FA.
-    """
+    # ... (giữ nguyên form Disable2FAForm) ...
     password = forms.CharField(
         label="Mật khẩu hiện tại",
         widget=forms.PasswordInput(attrs={

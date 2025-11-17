@@ -4,7 +4,36 @@
     <meta charset="utf-8">
     <title>Bật xác thực hai lớp (2FA)</title>
     <style>
-        body { font-family: system-ui, sans-serif; max-width: 560px; margin: 40px auto; line-height: 1.5; }
+        /* (Giữ nguyên style cũ của bạn) */
+        :root {
+            --color-bg: #ffffff;
+            --color-surface: #ffffff;
+            --color-surface-alt: #f8f9fa;
+            --color-border: #dadce0;
+            --color-text-primary: #202124;
+            --color-text-secondary: #5f6368;
+            --color-accent: #1a73e8;
+            --color-accent-hover: #1664ca;
+            --radius-lg: 1rem;
+            --radius-md: .5rem;
+            --shadow-card: 0 8px 24px rgba(0,0,0,.06);
+            --aws-bg-light: #f6f7f9;
+            --aws-bg-dark: #e4e6eb;
+        }
+
+        body { 
+            font-family: system-ui, sans-serif; 
+            max-width: 560px; 
+            margin: 40px auto; 
+            line-height: 1.5; 
+            
+            /* THÊM NỀN MỚI */
+            background-color: var(--aws-bg-light);
+            background-image: radial-gradient(circle at 1px 1px, var(--aws-bg-dark) 1px, var(--aws-bg-light) 0);
+            background-size: 20px 20px;
+        }
+        
+        /* (Giữ nguyên các style cũ) */
         h1 { font-size: 22px; margin-bottom: 12px; text-align: center; }
         .msg { font-size: 14px; color: #444; margin-bottom: 16px; text-align: center; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -14,7 +43,7 @@
         .uri { font-size: 12px; word-break: break-all; background: #f6f6f6; padding: 8px; border-radius: 6px; margin-top: 8px; }
         .row { display: grid; grid-template-columns: 140px 1fr; gap: 8px; margin: 6px 0; }
         .val { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: #fbfbfb; border: 1px dashed #ccc; padding: 6px 8px; border-radius: 6px; }
-        .copy { font-size: 12px; margin-left: 8px; cursor: pointer; }
+        
         form { border: 1px solid #ddd; border-radius: 10px; padding: 16px; margin-top: 16px; }
         label { font-weight: 600; display: block; margin-bottom: 6px; }
         input { width: 100%; padding: 10px 12px; font-size: 16px; border-radius: 8px; border: 1px solid #bbb; margin-bottom: 12px; }
@@ -22,6 +51,36 @@
         .errorlist { color: #c00; font-size: 14px; margin-bottom: 12px; list-style: none; padding: 0; }
         .enabled { background: #e6ffe6; border: 1px solid #66cc66; color: #056105; padding: 12px; border-radius: 8px; text-align:center; margin-bottom: 16px; }
         .hint { font-size: 12px; color: #777; }
+
+        /* Style cho nút Copy */
+        button.copy-btn {
+            width: auto;
+            margin: 0;
+            padding: 2px 6px;
+            font-size: 12px;
+            background: #eee;
+            color: #333;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button.copy-btn:hover {
+            background: #ddd;
+        }
+
+        /* THÊM MỚI: Style cho nút "Show" (giống btn-primary) */
+        #show-secret-btn {
+            display: inline-block;
+            background-color: var(--color-accent);
+            color: #fff;
+            border-radius: var(--radius-md);
+            border: 1px solid transparent;
+            padding: .7rem 1rem;
+            font-size: .9rem;
+            font-weight: 500;
+            width: 100%;
+            margin-top: 1rem;
+        }
+
     </style>
 </head>
 <body>
@@ -32,70 +91,101 @@
   <div class="enabled">2FA đã được bật cho tài khoản của bạn.</div>
   <p class="msg">Từ lần đăng nhập sau, bạn sẽ phải nhập mã OTP ở bước thứ hai.</p>
 {% else %}
+  
   <p class="msg">
-    Quét mã QR <b>hoặc</b> nhập khóa thủ công (Secret Key) bên cạnh.
-    Sau đó nhập mã OTP 6 số hiện trên ứng dụng để bật 2FA.
+    Quét mã QR bằng ứng dụng Authenticator của bạn.<br>
+    Nếu không thể quét, hãy dùng <strong>Khóa bí mật (Secret Key)</strong> để nhập thủ công.
   </p>
 
-  <div class="grid">
-    <div class="box qr">
-      <h3>Quét QR</h3>
-      {% if qr_b64 %}
-        <img src="data:image/png;base64,{{ qr_b64 }}" alt="QR Code 2FA">
-      {% else %}
-        <p>(Không tạo được QR)</p>
-      {% endif %}
-      <div class="uri">{{ otp_uri }}</div>
-      <div class="hint" style="margin-top:8px;">Nếu muốn, bạn có thể dùng liên kết otpauth:// ở trên để nhập vào app.</div>
+  <button type="button" id="show-secret-btn">
+    Hiển thị mã QR và Khóa bí mật
+  </button>
+  
+  <div id="secret-content-wrapper" style="display:none;">
+
+    <div class="grid">
+      <div class="box qr">
+        <h3>Quét QR</h3>
+        {% if qr_b64 %}
+          <img src="data:image/png;base64,{{ qr_b64 }}" alt="QR Code 2FA">
+        {% else %}
+          <p>(Không tạo được QR)</p>
+        {% endif %}
+        <div class="uri">{{ otp_uri }}</div>
+      </div>
+
+      <div class="box">
+        <h3>Thiết lập thủ công</h3>
+        
+        <div class="row" style="margin-top: 20px;">
+          <div>Khóa bí mật (Base32)</div>
+          <div class="val" id="secretVal">{{ secret_key }}</div>
+          <button type="button" class="copy-btn" data-copy-target="#secretVal">Copy</button>
+        </div>
+
+        <p class="hint" style="margin-top:16px;">
+          Trên Google Authenticator: bấm <i>+</i> → <b>Nhập khóa thiết lập</b> → điền <b>Tên tài khoản</b> (ví dụ: '{{ account_name }}') và <b>Khóa bí mật</b> (dán code đã copy).
+        </p>
+      </div>
     </div>
 
-    <div class="box">
-      <h3>Thiết lập thủ công (không cần quét QR)</h3>
-      <div class="row">
-        <div>Tên tài khoản</div>
-        <div class="val">{{ account_name }}</div>
-      </div>
-      <div class="row">
-        <div>Tên hệ thống</div>
-        <div class="val">{{ issuer }}</div>
-      </div>
-      <div class="row">
-        <div>Khóa bí mật (Base32)</div>
-        <div class="val" id="secretVal">{{ secret_key }}</div>
-		<button type="button" class="copy-btn" data-copy-target="#secretVal">Copy</button>
-      </div>
-      <div class="row">
-        <div>Thuật toán</div>
-        <div class="val">{{ algo|default:"SHA1" }}</div>
-      </div>
-      <div class="row">
-        <div>Số chữ số</div>
-        <div class="val">{{ digits|default:"6" }}</div>
-      </div>
-      <div class="row">
-        <div>Chu kỳ (giây)</div>
-        <div class="val">{{ period|default:"30" }}</div>
-      </div>
+    <form method="post" style="margin-top:16px;">
+      {% csrf_token %}
+      <label for="id_otp_code">Mã OTP (6 số)</label>
+      {{ form.otp_code }}
 
-      <p class="hint" style="margin-top:8px;">
-        Trên Google Authenticator: bấm <i>+</i> → <b>Nhập khóa thiết lập</b> (Enter a setup key) → điền <b>Tên tài khoản</b>, <b>Khóa bí mật</b> và chọn <b>Thời gian dựa trên</b> (Time-based).
-      </p>
-    </div>
-  </div>
+      {% if form.errors %} {{ form.errors }} {% endif %}
 
-  <form method="post" style="margin-top:16px;">
-    {% csrf_token %}
-    <label for="id_otp_code">Mã OTP (6 số)</label>
-    {{ form.otp_code }}
+      <button type="submit">Kích hoạt 2FA</button>
+      <div class="hint" style="margin-top:8px;">
+        Sau khi kích hoạt thành công, bạn sẽ được chuyển sang dashboard.
+      </div>
+    </form>
 
-    {% if form.errors %} {{ form.errors }} {% endif %}
+  </div> {% endif %}
 
-    <button type="submit">Kích hoạt 2FA</button>
-    <div class="hint" style="margin-top:8px;">
-      Sau khi kích hoạt thành công, bạn sẽ được chuyển sang dashboard. Từ lần đăng nhập sau, bạn sẽ phải nhập OTP ở bước thứ hai.
-    </div>
-  </form>
-{% endif %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    
+    // === XỬ LÝ NÚT HIỂN THỊ MÃ (MỚI) ===
+    const showButton = document.getElementById("show-secret-btn");
+    const secretWrapper = document.getElementById("secret-content-wrapper");
 
+    if (showButton && secretWrapper) {
+        showButton.addEventListener("click", () => {
+            // 1. Ẩn nút "Show"
+            showButton.style.display = "none";
+            // 2. Hiện nội dung
+            secretWrapper.style.display = "block";
+        });
+    }
+
+    // === XỬ LÝ NÚT COPY (Lấy từ app.js) ===
+    const copyButtons = document.querySelectorAll(".copy-btn");
+    copyButtons.forEach(button => {
+        button.addEventListener("click", () => {
+            const targetSelector = button.dataset.copyTarget;
+            const targetElement = document.querySelector(targetSelector);
+            
+            if (targetElement) {
+                // Sửa: Lấy text từ (innerText hoặc value)
+                const textToCopy = targetElement.value || targetElement.innerText;
+                
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    // Thông báo copy thành công
+                    const originalText = button.innerText;
+                    button.innerText = "Đã copy!";
+                    setTimeout(() => {
+                        button.innerText = originalText;
+                    }, 1500);
+                }).catch(err => {
+                    console.error("Lỗi copy: ", err);
+                });
+            }
+        });
+    });
+
+});
+</script>
 </body>
 </html>

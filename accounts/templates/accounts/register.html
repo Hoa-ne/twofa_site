@@ -35,11 +35,17 @@
         <ul class="errorlist">{{ form.non_field_errors }}</ul>
       {% endif %}
 
-      {# Render từng field để có label, help, error #}
       {% for field in form %}
-        <div class="field">
+        <div class="field {% if field.name == 'password1' or field.name == 'password2' %}password-wrapper{% endif %}">
           <label for="{{ field.id_for_label }}">{{ field.label }}</label>
           {{ field }}
+          
+          {% if field.name == 'password1' or field.name == 'password2' %}
+            <button type="button" class="password-toggle-btn" data-target="#{{ field.id_for_label }}">
+              Hiện
+            </button>
+          {% endif %}
+          
           {% if field.help_text %}
             <div class="help">{{ field.help_text|safe }}</div>
           {% endif %}
@@ -48,7 +54,6 @@
           {% endif %}
         </div>
       {% endfor %}
-
       <button type="submit">Tạo tài khoản</button>
     </form>
 
