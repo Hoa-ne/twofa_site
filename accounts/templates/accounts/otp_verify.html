@@ -31,8 +31,8 @@
             display: block;
             margin-bottom: 6px;
         }
-        input[type="text"] { /* Sửa selector */
-            width: 100%;
+        input[type="text"] {
+            width: 90%;
             padding: 10px 12px;
             font-size: 16px;
             border-radius: 6px;
@@ -49,12 +49,12 @@
             color: #fff;
             cursor: pointer;
         }
-        .errorlist {
-            color: #c00;
+        /* Style cho thông báo lỗi */
+        .error-msg {
+            color: #d93025;
             font-size: 14px;
             margin-bottom: 12px;
-            list-style: none;
-            padding: 0;
+            display: block;
         }
         .locked-box {
             background: #fee;
@@ -65,7 +65,6 @@
             margin-bottom: 12px;
             font-size: 14px;
         }
-        /* CSS cho checkbox */
         .form-check {
             display: flex;
             align-items: center;
@@ -81,7 +80,6 @@
             font-weight: normal;
             font-size: 14px;
         }
-        /* CSS cho các link thay thế */
         .alt-methods {
             margin-top: 16px;
             font-size: 14px;
@@ -101,7 +99,6 @@
         Tài khoản: <strong>{{ username }}</strong>
     </div>
 
-    {# Khi user bị khóa vì sai OTP quá nhiều lần #}
     {% if locked %}
         <div class="locked-box">
             {{ error }}
@@ -112,7 +109,6 @@
         </p>
     {% else %}
         <div class="box">
-            {# Hiển thị message (VD: đã gửi email) #}
             {% if messages %}
                 {% for message in messages %}
                     <div style="color: green; font-size: 14px; margin-bottom: 10px;">{{ message }}</div>
@@ -122,13 +118,20 @@
             <form method="post">
                 {% csrf_token %}
 
-                <label for="id_otp_code">Mã OTP (từ ứng dụng hoặc email)</label>
+                <label for="id_otp_code">Mã OTP </label>
                 {{ form.otp_code }}
 
-                {% if form.errors %}
-                    {{ form.errors }}
+                {% if form.otp_code.errors %}
+                    <div class="error-msg">
+                        {{ form.otp_code.errors.0 }}
+                    </div>
                 {% endif %}
-
+                
+                {% if form.non_field_errors %}
+                    <div class="error-msg">
+                        {{ form.non_field_errors.0 }}
+                    </div>
+                {% endif %}
                 <div class="form-check">
                     {{ form.remember_me }}
                     <label for="{{ form.remember_me.id_for_label }}">
@@ -147,7 +150,7 @@
         </div>
 
         <p style="font-size:13px;color:#777;margin-top:12px;text-align:center;">
-            Mã OTP thay đổi mỗi 30 giây trong ứng dụng Authenticator.
+            
         </p>
     {% endif %}
 

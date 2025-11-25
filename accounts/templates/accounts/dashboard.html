@@ -113,18 +113,18 @@
 <div class="card">
     <div class="card-header">Khu vực STAFF / ADMIN</div>
     <div class="card-line">
-        Bạn có quyền khoá/mở OTP người dùng, reset OTP, ép bật 2FA toàn hệ thống,
-        và xem nhật ký bảo mật trong trang Admin.
+        Bạn có quyền truy cập các công cụ quản trị nâng cao.
     </div>
-    <div class="mt-16">
-        <a class="btn-primary" style="width:auto;display:inline-block;" href="{% url 'accounts:staff_only' %}">
-            Vào khu vực STAFF
+    <div class="mt-16" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+        <a class="btn-primary" style="width:auto;display:inline-block;" href="/admin/">
+            Trang Admin (Quản lý User)
         </a>
-        <a class="btn-primary" style="width:auto;display:inline-block;margin-left:.5rem;" href="/admin/">
-            Vào trang Admin
+        <a class="btn-primary" style="width:auto;display:inline-block; background-color: #0d652d;"
+           href="{% url 'accounts:security_dashboard' %}">
+            Dashboard Bảo mật (Biểu đồ)
         </a>
     </div>
-</div>
+    </div>
 {% endif %}
 
 {% endblock %}

@@ -13,6 +13,8 @@ from datetime import timedelta
 from .forms import ProfileEditForm
 from django.core.paginator import Paginator 
 
+from django.db.models import Count
+from datetime import timedelta
 # MỚI: Import decorator của ratelimit
 from django_ratelimit.decorators import ratelimit
 
@@ -28,7 +30,8 @@ from .otp_algo import (
     generate_base32_secret, provisioning_uri, verify_totp,
     qr_code_base64 # Lấy qr_code_base64 từ đây
 )
-
+from django.db.models import Count, F
+from django.db.models.functions import TruncDate
 # Thêm các import cần thiết
 import time
 import secrets
@@ -39,10 +42,19 @@ def record_security_event(user, event_type, request=None, note=""):
     """
     Hàm trợ giúp mới để ghi lại nhật ký sự kiện bảo mật.
     """
+    # SỬA: Gọi hàm get_client_ip thay vì lấy trực tiếp REMOTE_ADDR
+    user_ip = get_client_ip(request) if request else ""
+    
+    # Lấy User-Agent (Thiết bị/Trình duyệt) để lưu vào nếu bạn đã thêm trường này
+    ua_string = ""
+    if request:
+        ua_string = request.META.get('HTTP_USER_AGENT', "")[:255]
+
     SecurityLog.objects.create(
         user=user,
-        event_type=event_type, # SỬA: Dùng trường 'event_type' mới
-        ip=(request.META.get("REMOTE_ADDR", "") if request else ""),
+        event_type=event_type,
+        ip=user_ip,  # <--- Đã dùng IP chuẩn
+        # user_agent=ua_string, # Bỏ comment dòng này nếu bạn đã thêm cột user_agent vào model ở bước trước
         note=note,
         created_at=timezone.now(),
     )
@@ -585,6 +597,78 @@ def disable_2fa_view(request):
         
     return render(request, "accounts/disable_2fa.html", {"form": form})
     
+@login_required
+def security_dashboard_view(request):
+    if not request.user.is_staff_role():
+        return HttpResponseForbidden("Bạn không có quyền truy cập.")
+
+    # 1. Thống kê User
+    total_users = User.objects.count()
+    users_2fa_on = User.objects.filter(is_2fa_enabled=True).count()
+    users_2fa_off = total_users - users_2fa_on
+    otp_locked_count = User.objects.filter(otp_locked=True).count()
+
+    # 2. Thống kê OTP Fail tổng cộng
+    total_otp_fails = SecurityLog.objects.filter(event_type='OTP_FAIL').count()
+
+    # 3. Dữ liệu biểu đồ: Số lần sai OTP trong 7 ngày qua
+    last_7_days = timezone.now() - timedelta(days=7)
+    
+    # Group by Date (Ngày): Đếm số lỗi theo từng ngày
+    fails_by_date = (
+        SecurityLog.objects
+        .filter(event_type='OTP_FAIL', created_at__gte=last_7_days)
+        .annotate(date=TruncDate('created_at'))
+        .values('date')
+        .annotate(count=Count('id'))
+        .order_by('date')
+    )
+    
+    # Chuyển dữ liệu thành list để vẽ biểu đồ
+    chart_dates = [item['date'].strftime('%d/%m') for item in fails_by_date]
+    chart_counts = [item['count'] for item in fails_by_date]
+
+    # 4. Thống kê Thiết bị (User Agent) - Lấy Top 5 thiết bị đăng nhập nhiều nhất
+    top_devices = (
+        SecurityLog.objects
+        .filter(event_type='LOGIN_SUCCESS')
+        .values('user_agent')
+        .annotate(count=Count('id'))
+        .order_by('-count')[:5]
+    )
+
+    context = {
+        "total_users": total_users,
+        "users_2fa_on": users_2fa_on,
+        "users_2fa_off": users_2fa_off,
+        "total_otp_fails": total_otp_fails,
+        "otp_locked_count": otp_locked_count,
+        
+        # Dữ liệu cho biểu đồ
+        "chart_dates": chart_dates,
+        "chart_counts": chart_counts,
+        
+        # Dữ liệu thiết bị
+        "top_devices": top_devices,
+    }
+    return render(request, "accounts/security_dashboard.html", context)
+    
+# --- THÊM HÀM MỚI NÀY ĐỂ LẤY IP THẬT ---
+def get_client_ip(request):
+    """
+    Lấy IP thật của người dùng, ưu tiên header X-Forwarded-For
+    (Dùng khi chạy sau Proxy hoặc Nginx/Cloudflare)
+    """
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        # Header này có thể chứa danh sách IP: "client, proxy1, proxy2"
+        # Ta lấy cái đầu tiên là IP client thật
+        ip = x_forwarded_for.split(',')[0].strip()
+    else:
+        # Fallback về REMOTE_ADDR nếu không có proxy
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
 def ratelimited_error_view(request, exception=None):
     # ... (giữ nguyên hàm ratelimited_error_view) ...
     return render(request, 'ratelimited.html', status=403)

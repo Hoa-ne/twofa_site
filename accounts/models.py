@@ -119,7 +119,7 @@ class SecurityLog(models.Model):
         ("ENABLE_2FA", "ENABLE_2FA"),           # User bật 2FA
         ("DISABLE_2FA", "DISABLE_2FA"),         # Admin tắt 2FA
     )
-
+    user_agent = models.CharField(max_length=255, blank=True, null=True, help_text="Thông tin thiết bị/trình duyệt")
     user = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
     # SỬA: Đổi tên 'event' thành 'event_type' cho khác biệt
     event_type = models.CharField(max_length=32, choices=EVENT_CHOICES, db_column="event", null=True)
