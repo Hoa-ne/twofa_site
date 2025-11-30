@@ -5,11 +5,9 @@ from django.utils import timezone
 from .models import User, SecurityPolicy, SecurityLog, BackupCode, SecurityConfig
 from .otp_algo import generate_base32_secret as create_otp_secret
 
-# MỚI: Import 2 form admin tùy chỉnh
 from .forms import UserAdminCreationForm, UserAdminChangeForm
 
 def log_admin_action(request, user, event_type, note=""):
-    # ... (giữ nguyên hàm log_admin_action) ...
     SecurityLog.objects.create(
         user=user,
         event_type=event_type, 
@@ -18,11 +16,10 @@ def log_admin_action(request, user, event_type, note=""):
         created_at=timezone.now(),
     )
 
-# ====== ACTIONS TRÊN USER (giữ nguyên) ======
 
 @admin.action(description="Reset OTP secret & buộc bật lại 2FA + ép đổi mật khẩu")
 def reset_otp_secret(modeladmin, request, queryset):
-    # ... (giữ nguyên action) ...
+    
     count = 0
     for user in queryset:
         user.otp_secret = create_otp_secret()
@@ -42,7 +39,6 @@ def reset_otp_secret(modeladmin, request, queryset):
 
 @admin.action(description="Bật cờ 'bắt buộc 2FA' cho user được chọn (must_setup_2fa=True)")
 def force_require_2fa(modeladmin, request, queryset):
-    # ... (giữ nguyên action) ...
     updated = queryset.update(must_setup_2fa=True)
     for u in queryset:
         log_admin_action(request, u, "FORCED_2FA", note="must_setup_2fa=True")
@@ -50,13 +46,11 @@ def force_require_2fa(modeladmin, request, queryset):
 
 @admin.action(description="Tắt cờ 'bắt buộc 2FA' cho user được chọn (must_setup_2fa=False)")
 def disable_require_2fa(modeladmin, request, queryset):
-    # ... (giữ nguyên action) ...
     updated = queryset.update(must_setup_2fa=False)
     messages.success(request, f"Đã tắt ép buộc 2FA cho {updated} user được chọn.")
 
 @admin.action(description="Vô hiệu hoá 2FA hiện tại (is_2fa_enabled=False)")
 def disable_2fa(modeladmin, request, queryset):
-    # ... (giữ nguyên action) ...
     updated_count = 0
     for user in queryset:
         if user.is_2fa_enabled:
@@ -68,7 +62,6 @@ def disable_2fa(modeladmin, request, queryset):
 
 @admin.action(description="Mở khoá OTP (otp_locked=False, failed_otp_attempts=0)")
 def unlock_otp(modeladmin, request, queryset):
-    # ... (giữ nguyên action) ...
     updated = 0
     for user in queryset:
         user.otp_locked = False
@@ -80,7 +73,6 @@ def unlock_otp(modeladmin, request, queryset):
 
 @admin.action(description="Ép đổi mật khẩu (must_change_password=True)")
 def force_password_reset(modeladmin, request, queryset):
-    # ... (giữ nguyên action) ...
     updated = queryset.update(must_change_password=True)
     for u in queryset:
         log_admin_action(request, u, "FORCE_PW_RESET", note="Admin set must_change_password=True")
@@ -88,19 +80,15 @@ def force_password_reset(modeladmin, request, queryset):
 
 @admin.action(description="Bỏ ép đổi mật khẩu (must_change_password=False)")
 def clear_password_reset_flag(modeladmin, request, queryset):
-    # ... (giữ nguyên action) ...
     updated = queryset.update(must_change_password=False)
     messages.success(request, f"Đã gỡ cờ ép đổi mật khẩu cho {updated} user.")
 
-# --- SỬA CLASS NÀY ---
 @admin.register(User)
 class UserAdmin(DjangoUserAdmin):
     
-    # Chỉ định 2 form tùy chỉnh
     form = UserAdminChangeForm
     add_form = UserAdminCreationForm
 
-    # fieldsets dùng cho trang SỬA user
     fieldsets = (
         (None, {"fields": ("username", "password")}),
         ("Thông tin cá nhân", {"fields": ("first_name", "last_name", "email", "avatar", "bio")}),
@@ -128,16 +116,14 @@ class UserAdmin(DjangoUserAdmin):
         ("Dấu thời gian", {"fields": ("last_login", "date_joined")}),
     )
 
-    # add_fieldsets dùng cho trang THÊM MỚI user
-    # SỬA LẠI CHỖ NÀY
     add_fieldsets = (
         (None, {
             "classes": ("wide",),
             "fields": (
                 "username",
                 "email",
-                "password1",  # <--- ĐÃ SỬA THÀNH "password1" (KHỚP VỚI USERCREATIONFORM)
-                "password2",  # <--- "password2" (Đã đúng)
+                "password1",  
+                "password2",  
                 "role",
                 "is_staff",
                 "is_superuser",
@@ -184,16 +170,13 @@ class UserAdmin(DjangoUserAdmin):
         clear_password_reset_flag,
     ]
 
-# ====== ADMIN CHO SECURITYPOLICY (giữ nguyên) ======
 @admin.register(SecurityPolicy)
 class SecurityPolicyAdmin(admin.ModelAdmin):
-    # ... (giữ nguyên) ...
     list_display = ("require_2fa_for_new_users", "updated_at")
     actions = ["force_all_users_require_2fa", "disable_all_users_require_2fa"]
 
     @admin.action(description="Ép TOÀN BỘ user phải bật lại 2FA (must_setup_2fa=True)")
     def force_all_users_require_2fa(self, request, queryset):
-        # ... (giữ nguyên) ...
         updated = User.objects.update(must_setup_2fa=True)
         for u in User.objects.all():
             log_admin_action(request, u, "FORCED_2FA", note="Global force via SecurityPolicy")
@@ -201,14 +184,11 @@ class SecurityPolicyAdmin(admin.ModelAdmin):
 
     @admin.action(description="Bỏ ép buộc 2FA cho TOÀN BỘ user (must_setup_2fa=False)")
     def disable_all_users_require_2fa(self, request, queryset):
-        # ... (giữ nguyên) ...
         updated = User.objects.update(must_setup_2fa=False)
         messages.success(request, f"Đã bỏ ép buộc 2FA cho {updated} user.")
 
-# ====== ADMIN CHO SECURITYLOG (giữ nguyên) ======
 @admin.register(SecurityLog)
 class SecurityLogAdmin(admin.ModelAdmin):
-    # ... (giữ nguyên) ...
     list_display = ("created_at", "user", "event_type", "ip", "note")
     list_filter = ("event_type", "user")
     search_fields = ("user__username", "ip", "note")
@@ -220,10 +200,8 @@ class SecurityLogAdmin(admin.ModelAdmin):
     def has_change_permission(self, request, obj=None):
         return False
 
-# ====== ADMIN CHO BACKUPCODE (giữ nguyên) ======
 @admin.register(BackupCode)
 class BackupCodeAdmin(admin.ModelAdmin):
-    # ... (giữ nguyên) ...
     list_display = ("user", "is_used", "created_at")
     list_filter = ("is_used", "user")
     search_fields = ("user__username",)
@@ -239,10 +217,8 @@ class BackupCodeAdmin(admin.ModelAdmin):
 class SecurityConfigAdmin(admin.ModelAdmin):
     list_display = ("enforce_2fa", "lockout_threshold", "otp_period")
     
-    # Đảm bảo admin không thể "Thêm" một config mới (vì nó là singleton)
     def has_add_permission(self, request):
         return False
         
-    # Đảm bảo admin không thể "Xóa" config
     def has_delete_permission(self, request, obj=None):
         return False

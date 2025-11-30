@@ -74,7 +74,6 @@
 </div>
 
 <script>
-    // 1. Biểu đồ tròn 2FA
     const ctx2FA = document.getElementById('chart2FA');
     new Chart(ctx2FA, {
         type: 'doughnut',
@@ -93,9 +92,7 @@
         }
     });
 
-    // 2. Biểu đồ cột OTP Fail
     const ctxOTP = document.getElementById('chartOTPFail');
-    // Dữ liệu từ Python (nếu rỗng thì tạo mảng rỗng)
     const dates = {{ chart_dates|safe }};
     const counts = {{ chart_counts|safe }};
 

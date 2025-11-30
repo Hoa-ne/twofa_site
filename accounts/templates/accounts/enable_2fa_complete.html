@@ -105,33 +105,27 @@
         
         if (downloadBtn) {
             downloadBtn.addEventListener("click", () => {
-                // 1. Lấy tất cả các mã
                 const codeElements = document.querySelectorAll(".backup-code-item");
                 let codesText = "Mã khôi phục 2FA cho tài khoản của bạn\n";
                 codesText += "========================================\n";
                 codesText += "Hãy cất giữ file này ở một nơi an toàn.\n";
                 codesText += "Mỗi mã chỉ có thể sử dụng một lần.\n\n";
 
-                // 2. Gom thành 1 file text
                 codeElements.forEach(el => {
                     codesText += el.innerText.trim() + "\n";
                 });
 
-                // 3. Tạo Blob (file trong bộ nhớ)
                 const blob = new Blob([codesText], { 
                     type: "text/plain;charset=utf-8" 
                 });
 
-                // 4. Tạo 1 đường link tải về ảo
                 const link = document.createElement("a");
                 link.href = URL.createObjectURL(blob);
-                link.download = "backup-codes.txt"; // Tên file tải về
+                link.download = "backup-codes.txt"; 
 
-                // 5. Kích hoạt tải về
                 document.body.appendChild(link);
                 link.click();
                 
-                // 6. Dọn dẹp
                 document.body.removeChild(link);
                 URL.revokeObjectURL(link.href);
             });

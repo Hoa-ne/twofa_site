@@ -29,11 +29,11 @@
             {% csrf_token %}
             {% if thread.locked %}
                 <button type="submit" class="btn-primary" style="background-color: #28a745; width: auto; border: none;">
-                    🔓 Mở khóa chủ đề
+                    🔓 Mở khóa chủ đề này
                 </button>
             {% else %}
                 <button type="submit" class="btn-danger" style="width: auto;">
-                    🔒 Khóa chủ đề
+                    🔒 Khóa chủ đề này
                 </button>
             {% endif %}
         </form>
@@ -81,7 +81,7 @@
             
         </div>
         {% empty %}
-            <div style="padding: 1.25rem;">Chưa có trả lời nào.</div>
+            <div style="padding: 1.25rem;">Chưa có trả lời nào</div>
         {% endfor %}
     </div>
 
@@ -115,7 +115,7 @@
     {% else %}
         {% if thread.locked %}
             <div class="alert-error">
-                Chủ đề này đã bị khóa, không thể trả lời thêm.
+                Chủ đề này đã bị khóa
             </div>
         {% else %}
             <form method="post">

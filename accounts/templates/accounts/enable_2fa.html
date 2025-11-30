@@ -147,20 +147,20 @@
 <script>
 document.addEventListener("DOMContentLoaded", () => {
     
-    // === XỬ LÝ NÚT HIỂN THỊ MÃ (MỚI) ===
+    
     const showButton = document.getElementById("show-secret-btn");
     const secretWrapper = document.getElementById("secret-content-wrapper");
 
     if (showButton && secretWrapper) {
         showButton.addEventListener("click", () => {
-            // 1. Ẩn nút "Show"
+            
             showButton.style.display = "none";
-            // 2. Hiện nội dung
+            
             secretWrapper.style.display = "block";
         });
     }
 
-    // === XỬ LÝ NÚT COPY (Lấy từ app.js) ===
+    
     const copyButtons = document.querySelectorAll(".copy-btn");
     copyButtons.forEach(button => {
         button.addEventListener("click", () => {
@@ -168,11 +168,11 @@ document.addEventListener("DOMContentLoaded", () => {
             const targetElement = document.querySelector(targetSelector);
             
             if (targetElement) {
-                // Sửa: Lấy text từ (innerText hoặc value)
+                
                 const textToCopy = targetElement.value || targetElement.innerText;
                 
                 navigator.clipboard.writeText(textToCopy).then(() => {
-                    // Thông báo copy thành công
+                    
                     const originalText = button.innerText;
                     button.innerText = "Đã copy!";
                     setTimeout(() => {
