@@ -61,7 +61,7 @@
                     
                     {% if request.user == p.author %}
                     <span class="post-actions">
-                        <a href="{% url 'forum:post_edit' p.id %}?page={{ page_obj.number }}" style="color: #007bff;">Sửa</a>
+                        <a href="{% url 'forum:post_edit' p.id %}?page={{ page_obj.number }}" style="color: #007bff;display: grid;">Sửa</a>
                         
                         <form action="{% url 'forum:post_delete' p.id %}" method="post" style="display: inline;" 
                               onsubmit="return confirm('Bạn có chắc muốn xóa bài này?');">
@@ -101,7 +101,7 @@
         {% endif %}
     </div>
 </div>
-<div class="card form-wrapper" style="max-width:600px;">
+<div class="card form-wrapper" style="max-width:100%;">
     <div class="card-header">Gửi trả lời</div>
 
     {% if not request.user.is_authenticated %}

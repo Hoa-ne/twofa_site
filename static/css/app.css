@@ -99,7 +99,7 @@ body {
 }
 
 .nav-links a:hover {
-  background-color: var(--color-surface-alt);
+  background-color: #000;
   color: var(--color-text-primary);
 }
 
