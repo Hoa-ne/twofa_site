@@ -157,7 +157,7 @@ class OTPForm(forms.Form):
     )
     
     remember_me = forms.BooleanField(
-        label="Tin cậy thiết bị này trong 30 ngày",
+        label="Tin cậy thiết bị này trong 1 ngày",
         required=False,
         widget=forms.CheckboxInput(attrs={"class": "form-check-input"})
     )

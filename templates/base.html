@@ -53,17 +53,19 @@
             <p style="font-size: 13px; color: #777;">&copy; Thuộc KLCN_BM09</p>
         </div>
         <div class="footer-section">
-            <h4>Liên kết nhanh</h4>
-            <ul>
-                <li><a href="{% url 'forum:home' %}">Diễn đàn</a></li>
-                <li><a href="{% url 'forum:thread_create' %}">Tạo chủ đề</a></li>
-                {% if request.user.is_authenticated %}
-                    <li><a href="{% url 'accounts:dashboard' %}">Tài khoản của tôi</a></li>
-                {% else %}
-                    <li><a href="{% url 'accounts:login' %}">Đăng nhập</a></li>
-                {% endif %}
-            </ul>
-        </div>
+    <h4>Liên kết nhanh</h4>
+    <ul>
+        <li><a href="{% url 'forum:home' %}">Diễn đàn</a></li>
+        <li><a href="{% url 'forum:thread_create' %}">Tạo chủ đề</a></li>
+        {% if request.user.is_authenticated %}
+            <li><a href="{% url 'accounts:dashboard' %}">Tài khoản của tôi</a></li>
+        {% else %}
+            <li><a href="{% url 'accounts:login' %}">Đăng nhập</a></li>
+        {% endif %}
+        
+        <li><a href="{% url 'forum:contact' %}">Liên hệ </a></li>
+    </ul>
+</div>
         <div class="footer-section">
             <h4>Tài khoản</h4>
             <ul>

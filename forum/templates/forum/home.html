@@ -2,7 +2,6 @@
 {% load static %}
 
 {% block body_class %}page-home{% endblock %}
-
 {% block title %}Diễn đàn{% endblock %}
 
 {% block content %}
@@ -17,133 +16,122 @@
     <div class="hero-content">
         {% if request.user.is_authenticated %}
              <h1>Chào mừng, {{ request.user.username }}</h1>
-             <p>Hãy xem các hoạt động mới nhất bên dưới hoặc tạo một chủ đề mới</p>
+             <p>Cùng thảo luận và chia sẻ kiến thức công nghệ</p>
         {% else %}
-            <h1>Chào mừng đến với Diễn đàn </h1>
-            <p>Trao đổi về cuộc sống và công nghệ</p>
+            <h1>Chào mừng đến với Diễn đàn</h1>
+            <p>Nơi trao đổi về cuộc sống và công nghệ</p>
         {% endif %}
     </div>
 </div>
+
 <style>
-    
-    .home-grid {
-        display: grid;
-        grid-template-columns: 1fr; /* Mặc định 1 cột cho mobile */
-        gap: 24px;
-    }
+    /* BỐ CỤC */
+    .home-grid { display: grid; grid-template-columns: 1fr; gap: 24px; }
+    @media (min-width: 992px) { .home-grid { grid-template-columns: 2.5fr 1fr; } }
 
-    @media (min-width: 768px) {
-        .home-grid {
-            /* 2 cột trên desktop: cột chính 70%, cột phụ 30% */
-            grid-template-columns: 2.5fr 1fr; 
-        }
-    }
+    /* SIDEBAR */
+    .sidebar-card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #eee; padding: 1.25rem; margin-bottom: 1.5rem; }
+    .sidebar-header { font-size: 1rem; font-weight: 700; color: #333; margin-bottom: 1rem; border-bottom: 2px solid #f0f2f5; padding-bottom: 0.5rem; }
+    .category-list a, .sidebar-latest-activity a { display: block; padding: 8px 0; color: #555; text-decoration: none; border-bottom: 1px dashed #eee; transition: 0.2s; }
+    .category-list a:hover { color: #667eea; padding-left: 5px; }
+    .stats-list div { font-size: 0.95rem; color: #666; padding: 8px 0; display: flex; justify-content: space-between; border-bottom: 1px solid #f9f9f9; }
 
-    .sidebar-card {
-        background-color: var(--color-surface);
-        border-radius: var(--radius-lg);
-        box-shadow: var(--shadow-card);
-        border: 1px solid var(--color-border);
-        padding: 1.25rem;
-        margin-bottom: 1.5rem;
+    /* NÚT TẠO CHỦ ĐỀ (PILL STYLE) */
+    .btn-create-pill {
+        display: inline-flex; align-items: center; gap: 8px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white !important; padding: 8px 20px; border-radius: 50px;
+        text-decoration: none; font-size: 0.9rem; font-weight: 600;
+        box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3); transition: all 0.3s ease;
     }
-    .sidebar-header {
-        font-size: 1rem;
-        font-weight: 600;
-        color: var(--color-text-primary);
-        margin-bottom: 1rem;
-    }
-    .category-list a {
-        display: block;
-        padding: 8px 0;
-        text-decoration: none;
-        color: var(--color-accent);
-        font-size: 15px;
-        border-bottom: 1px solid #eee;
-    }
-    .stats-list div {
-        font-size: 15px;
-        color: var(--color-text-secondary);
-        padding: 5px 0;
-        display: flex;
-        justify-content: space-between;
-    }
+    .btn-create-pill:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(102, 126, 234, 0.5); }
+
+    /* HEADER & BỘ LỌC */
+    .section-header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+    .filter-group { display: flex; gap: 5px; background: #f1f3f5; padding: 4px; border-radius: 8px; }
+    .filter-btn { padding: 5px 12px; font-size: 0.85rem; text-decoration: none; color: #666; border-radius: 6px; font-weight: 500; transition: 0.2s; }
+    .filter-btn:hover { background: #e9ecef; color: #333; }
+    .filter-btn.active { background: white; color: #667eea; box-shadow: 0 2px 4px rgba(0,0,0,0.05); font-weight: 700; }
+
+    /* THREAD CARD */
+    .thread-card { display: block; background: white; padding: 20px; border-radius: 12px; margin-bottom: 15px; text-decoration: none; border: 1px solid #eee; transition: transform 0.2s, box-shadow 0.2s; }
+    .thread-card:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.05); border-color: #667eea; }
+    .thread-title { font-size: 1.1rem; font-weight: 700; color: #2d3748; margin-bottom: 8px; }
+    .thread-meta { font-size: 0.85rem; color: #718096; }
+    .thread-meta strong { color: #667eea; font-weight: 600; }
 </style>
 
 <div class="home-grid">
-    
-    <div class="main-content">
-        
-        <h2 style="font-size:16px; font-weight:600; color:var(--text-primary); margin-bottom:16px;">
-            Hoạt động mới nhất
-        </h2>
-
-        {% for thread in latest_threads %}
-            <a class="thread-card" href="{{ thread.get_absolute_url }}">
-                <div class="thread-title">{{ thread.title }}</div>
-                <div class="thread-meta">
-                    Bởi 
-                    <strong>{{ thread.author.username }}</strong>
-                    trong
-                    <strong>{{ thread.category.title }}</strong>
-                    • {{ thread.created_at|date:"H:i d/m/Y" }}
+    <div class="main-column">
+        <div class="main-content">
+            <div class="section-header-flex">
+                <h2 style="font-size:18px; font-weight:700; margin:0;">Hoạt động mới nhất</h2>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div class="filter-group">
+                        <a href="?sort=newest" class="filter-btn {% if current_sort == 'newest' %}active{% endif %}">Mới nhất</a>
+                        <a href="?sort=oldest" class="filter-btn {% if current_sort == 'oldest' %}active{% endif %}">Cũ nhất</a>
+                        <a href="?sort=az" class="filter-btn {% if current_sort == 'az' %}active{% endif %}">A-Z</a>
+                    </div>
+                    <a href="{% url 'forum:thread_create' %}" class="btn-create-pill">
+                        <i class="fas fa-plus"></i> <span>Tạo chủ đề</span>
+                    </a>
                 </div>
-            </a>
-        {% empty %}
-            <div class="thread-card">
-                <div class="thread-title">Chưa có chủ đề nào</div>
             </div>
-        {% endfor %}
+
+            {% for thread in latest_threads %}
+                <a class="thread-card" href="{{ thread.get_absolute_url }}">
+                    <div class="thread-title">{{ thread.title }}</div>
+                    <div class="thread-meta">
+                        <i class="far fa-user"></i> <strong>{{ thread.author.username }}</strong> &nbsp;|&nbsp; 
+                        <i class="far fa-folder-open"></i> <strong>{{ thread.category.title }}</strong> &nbsp;|&nbsp; 
+                        <i class="far fa-clock"></i> {{ thread.created_at|date:"H:i d/m/Y" }}
+                    </div>
+                </a>
+            {% empty %}
+                <div class="thread-card" style="text-align: center; color: #999;">
+                    <p>Chưa có chủ đề nào.</p>
+                </div>
+            {% endfor %}
+        </div>
     </div>
 
     <div class="sidebar">
-        
         <div class="sidebar-card">
             <div class="sidebar-header">Chuyên mục</div>
-            <div class="sidebar-category-list">
+            <div class="category-list">
                 {% for category in categories %}
                     <a href="{{ category.get_absolute_url }}">
-                        <span class="icon">📁</span> {{ category.title }}
+                        <i class="fas fa-folder" style="color: #667eea; margin-right: 8px;"></i> {{ category.title }}
                     </a>
                 {% empty %}
-                    <small style="color:var(--color-text-secondary);">Chưa có chuyên mục</small>
+                    <small>Chưa có chuyên mục</small>
                 {% endfor %}
             </div>
         </div>
         
         <div class="sidebar-card">
-            <div class="sidebar-header">Hoạt động mới nhất</div>
+            <div class="sidebar-header">Mới cập nhật</div>
             <div class="sidebar-latest-activity">
                 {% for thread in latest_threads_sidebar %}
                     <a href="{{ thread.get_absolute_url }}">
-                        <div class="thread-title">{{ thread.title }}</div>
-                        <div class="thread-meta">
-                            Bởi <strong>{{ thread.author.username }}</strong> • {{ thread.created_at|date:"d/m/Y" }}
-                        </div>
+                        <div style="font-weight: 600; color: #333; margin-bottom: 4px;">{{ thread.title }}</div>
+                        <div style="font-size: 0.8rem; color: #888;">{{ thread.author.username }} • {{ thread.created_at|timesince }} trước</div>
                     </a>
                 {% empty %}
-                    <small style="color:var(--color-text-secondary);">Chưa có hoạt động nào</small>
+                    <small>Chưa có hoạt động nào</small>
                 {% endfor %}
             </div>
         </div>
-        
+
         <div class="sidebar-card">
             <div class="sidebar-header">Thống kê</div>
-            <div class="sidebar-stats-list">
-                <div>
-                    <span>Thành viên:</span>
-                    <strong>{{ stats.total_users }}</strong>
-                </div>
-                <div>
-                    <span>Chủ đề:</span>
-                    <strong>{{ stats.total_threads }}</strong>
-                </div>
-                <div>
-                    <span>Bài viết:</span>
-                    <strong>{{ stats.total_posts }}</strong>
-                </div>
+            <div class="stats-list">
+                <div><span><i class="fas fa-users"></i> Thành viên:</span> <strong>{{ stats.total_users }}</strong></div>
+                <div><span><i class="fas fa-comments"></i> Chủ đề:</span> <strong>{{ stats.total_threads }}</strong></div>
+                <div><span><i class="fas fa-reply-all"></i> Bài viết:</span> <strong>{{ stats.total_posts }}</strong></div>
             </div>
         </div>
     </div>
-    </div>
+</div>
+
 {% endblock %}

@@ -42,13 +42,19 @@ body {
 /* ------- Top Navbar ------- */
 
 .app-navbar {
-  background-color: var(--color-bg);
-  box-shadow: var(--shadow-nav);
-  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-bg); /* Màu nền mặc định */
+  
+  /* Kích hoạt chế độ dính */
   position: sticky;
   top: 0;
-  z-index: 100;
-  transition: background-color 0.3s ease-in-out; /* Thêm hiệu ứng */
+  z-index: 1000; /* Tăng z-index để nó luôn nằm trên các thành phần khác */
+  
+  /* Thêm bóng đổ nhẹ để tách biệt với nội dung bên dưới */
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); 
+  border-bottom: 1px solid var(--color-border);
+  
+  /* Hiệu ứng chuyển đổi mượt mà (nếu có thay đổi màu sau này bằng JS) */
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .app-navbar-inner {

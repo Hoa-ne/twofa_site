@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Liên Hệ - Contact Us{% endblock %}
+
+{% block content %}
+<style>
+    /* --- CSS RIÊNG CHO TRANG LIÊN HỆ --- */
+    
+    /* Ghi đè màu nền body để giữ style gradient tím */
+    body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        min-height: 100vh;
+    }
+    
+    /* Chỉnh lại màu chữ trong page-wrapper */
+    .page-wrapper {
+        color: #333;
+    }
+
+    /* Container cho nút Back */
+    .nav-back-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px 20px 0; /* Padding trên để tách khỏi mép */
+    }
+
+    /* Nút Quay lại trang chủ */
+    .btn-back-home {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background-color: rgba(255, 255, 255, 0.15); /* Nền mờ trong suốt */
+        color: white;
+        padding: 10px 20px;
+        border-radius: 50px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.95rem;
+        backdrop-filter: blur(5px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        transition: all 0.3s ease;
+    }
+
+    .btn-back-home:hover {
+        background-color: white;
+        color: #667eea;
+        transform: translateX(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    /* Header của phần nội dung */
+    .contact-header {
+        text-align: center;
+        color: white;
+        padding: 10px 20px 40px; /* Giảm padding trên vì đã có nút back */
+        margin-bottom: 20px;
+    }
+    .contact-header h1 {
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        color: white;
+    }
+    .contact-header p {
+        font-size: 1.1rem;
+        opacity: 0.95;
+        color: white;
+    }
+
+    /* Các Card nội dung */
+    .contact-info-section, .team-section, .map-section {
+        background: white;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        margin-bottom: 40px;
+    }
+
+    h2.section-title {
+        color: #667eea;
+        margin-bottom: 30px;
+        font-size: 1.8rem;
+        text-align: center;
+    }
+
+    /* Team Grid */
+    .team-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 30px;
+    }
+    .team-member {
+        background: #f8f9fa;
+        border-radius: 15px;
+        overflow: hidden;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .team-member:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 40px rgba(102, 126, 234, 0.3);
+    }
+    .member-image {
+        width: 100%;
+        height: 350px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .member-image img {
+        width: 100%;
+        height: 100%;
+    }
+    .member-info {
+        padding: 20px;
+        text-align: center;
+    }
+    .member-info h3 {
+        color: #333;
+        font-size: 1.3rem;
+        margin-bottom: 5px;
+    }
+    .member-info .position {
+        color: #667eea;
+        font-weight: 600;
+        margin-bottom: 10px;
+    }
+    .member-contact a {
+        display: inline-block;
+        color: #667eea;
+        text-decoration: none;
+        padding: 8px 16px;
+        background: #f0f2ff;
+        border-radius: 8px;
+        transition: 0.3s;
+        font-size: 0.9rem;
+    }
+    .member-contact a:hover {
+        background: #667eea;
+        color: white;
+    }
+
+    /* Map */
+    .map-placeholder {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Responsive cho Mobile */
+    @media (max-width: 576px) {
+        .contact-header h1 { font-size: 1.8rem; }
+        .team-grid { grid-template-columns: 1fr; }
+        .nav-back-container { padding: 15px; } /* Căn lề mobile */
+    }
+</style>
+
+<div class="nav-back-container">
+    <a href="{% url 'forum:home' %}" class="btn-back-home">
+        <i class="fa fa-arrow-left"></i> Quay lại trang chủ
+    </a>
+</div>
+
+<div class="contact-header">
+    <h1>Liên Hệ Với Chúng Tôi</h1>
+    <p>Hãy để lại thông tin, chúng tôi sẽ liên hệ với bạn sớm nhất!</p>
+</div>
+
+<div class="team-section">
+    <h2 class="section-title">Đội Ngũ Quản Trị</h2>
+    <div class="team-grid">
+        <div class="team-member">
+            <div class="member-image">
+                <img src="{% static 'img/admin1.png' %}" alt="Admin 1" style="opacity: 0.8;">
+            </div>
+            <div class="member-info">
+                <h3>Châu Nhật Hoà</h3>
+                <p class="position">Trưởng bộ phận Admin</p>
+                <p class="description">chaunhathoa24102004@gmail.com</p>
+                <div class="member-contact">
+                    <a href="mailto:chaunhathoa24102004@gmail.com">
+                        <i class="fa fa-envelope"></i> Gửi Email
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="team-member">
+            <div class="member-image">
+                <img src="{% static 'img/admin3.jpg' %}" alt="Admin 2" style="opacity: 0.8;">
+            </div>
+            <div class="member-info">
+                <h3>Nguyễn Đình Quốc</h3>
+                <p class="position">Admin 2</p>
+                <p class="description">nguyendinhquoc1905@gmail.com</p>
+                <div class="member-contact">
+                    <a href="mailto:nguyendinhquoc1905@gmail.com">
+                        <i class="fa fa-envelope"></i> Gửi Email
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="team-member">
+            <div class="member-image">
+                <img src="{% static 'img/admin2.jpg' %}" alt="Admin 3" style="opacity: 0.8;">
+            </div>
+            <div class="member-info">
+                <h3>Nguyễn Kim Chí Bảo</h3>
+                <p class="position">Admin 3</p>
+                <p class="description">baokim1@gmail.com</p>
+                <div class="member-contact">
+                    <a href="mailto:baokim1@gmail.com">
+                        <i class="fa fa-envelope"></i> Gửi Email
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="map-section">
+    <h2 class="section-title">Vị Trí Của Chúng Tôi</h2>
+    <div class="map-placeholder">
+        <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3582.2633513146507!2d106.62625947461338!3d10.806920289343722!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752be27ea41e05%3A0xfa77697a39f13ab0!2zMTQwIEzDqiBUcuG7jW5nIFThuqVuLCBUw6J5IFRo4bqhbmgsIFTDom4gUGjDuiwgVGjDoG5oIHBo4buRIEjhu5MgQ2jDrSBNaW5oIDcwMDAwMCwgVmnhu4d0IE5hbQ!5e1!3m2!1svi!2s!4v1765761388624!5m2!1svi!2s" 
+                width="100%" 
+                height="450" 
+                style="border:0;" 
+                allowfullscreen="" 
+                loading="lazy" 
+                referrerpolicy="no-referrer-when-downgrade">
+        </iframe>
+    </div>
+</div>
+
+{% endblock %}

@@ -6,7 +6,7 @@ app_name = "forum"
 urlpatterns = [
     # Trang chủ (liệt kê categories)
     path("", views.home, name="home"),
-
+    path("contact/", views.contact_view, name="contact"),
     # THÊM URL MỚI: Trang chi tiết category (liệt kê threads)
     path("category/<slug:slug>/", views.category_detail, name="category_detail"),
 
