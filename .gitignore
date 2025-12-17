@@ -9,4 +9,4 @@ staticfiles/
 Thumbs.db
 .DS_Store
 static_collected/
-media/
+
