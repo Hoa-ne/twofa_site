@@ -672,3 +672,88 @@ def get_client_ip(request):
 def ratelimited_error_view(request, exception=None):
     # ... (giữ nguyên hàm ratelimited_error_view) ...
     return render(request, 'ratelimited.html', status=403)
+    
+# --- HÀM PHỤ ĐỂ DỊCH USER-AGENT CHO GỌN ---
+def _simplify_user_agent(ua_string):
+    if not ua_string or ua_string == "Unknown":
+        return "Không xác định"
+    
+    ua = ua_string.lower()
+    
+    # 1. Xác định Hệ điều hành (OS)
+    os = "Khác"
+    if "windows" in ua: os = "Windows"
+    elif "mac os" in ua: os = "macOS"
+    elif "android" in ua: os = "Android"
+    elif "iphone" in ua or "ipad" in ua: os = "iOS"
+    elif "linux" in ua: os = "Linux"
+
+    # 2. Xác định Trình duyệt
+    browser = "Browser"
+    if "edg" in ua: browser = "Edge" # Edge thường chứa cả Chrome nên check trước
+    elif "chrome" in ua: browser = "Chrome"
+    elif "firefox" in ua: browser = "Firefox"
+    elif "safari" in ua: browser = "Safari"
+    elif "opera" in ua or "opr" in ua: browser = "Opera"
+    
+    return f"{os} ({browser})"
+
+# --- HÀM VIEW CHÍNH ĐÃ SỬA ---
+@login_required
+def security_dashboard_view(request):
+    if not request.user.is_staff_role():
+        return HttpResponseForbidden("Bạn không có quyền truy cập.")
+
+    # 1. Thống kê User
+    total_users = User.objects.count()
+    users_2fa_on = User.objects.filter(is_2fa_enabled=True).count()
+    users_2fa_off = total_users - users_2fa_on
+    otp_locked_count = User.objects.filter(otp_locked=True).count()
+
+    # 2. Thống kê OTP Fail tổng cộng
+    total_otp_fails = SecurityLog.objects.filter(event_type='OTP_FAIL').count()
+
+    # 3. Dữ liệu biểu đồ: Số lần sai OTP trong 7 ngày qua
+    last_7_days = timezone.now() - timedelta(days=7)
+    
+    fails_by_date = (
+        SecurityLog.objects
+        .filter(event_type='OTP_FAIL', created_at__gte=last_7_days)
+        .annotate(date=TruncDate('created_at'))
+        .values('date')
+        .annotate(count=Count('id'))
+        .order_by('date')
+    )
+    
+    chart_dates = [item['date'].strftime('%d/%m') for item in fails_by_date]
+    chart_counts = [item['count'] for item in fails_by_date]
+
+    # 4. Thống kê Thiết bị (Đã xử lý chuỗi User-Agent cho gọn)
+    raw_devices = (
+        SecurityLog.objects
+        .filter(event_type='LOGIN_SUCCESS')
+        .values('user_agent')
+        .annotate(count=Count('id'))
+        .order_by('-count')[:5]
+    )
+
+    # Xử lý danh sách: Dịch User-Agent sang tên ngắn gọn
+    top_devices = []
+    for item in raw_devices:
+        clean_name = _simplify_user_agent(item['user_agent'])
+        top_devices.append({
+            'user_agent': clean_name, # Tên mới gọn gàng
+            'count': item['count']
+        })
+
+    context = {
+        "total_users": total_users,
+        "users_2fa_on": users_2fa_on,
+        "users_2fa_off": users_2fa_off,
+        "total_otp_fails": total_otp_fails,
+        "otp_locked_count": otp_locked_count,
+        "chart_dates": chart_dates,
+        "chart_counts": chart_counts,
+        "top_devices": top_devices,
+    }
+    return render(request, "accounts/security_dashboard.html", context)

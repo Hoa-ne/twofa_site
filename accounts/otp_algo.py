@@ -31,7 +31,7 @@ def hotp(secret_b32: str, counter: int, digits: int = 6, algo: str = "SHA1") -> 
     o = h[-1] & 0x0F
     code = ((h[o] & 0x7F) << 24) | (h[o+1] << 16) | (h[o+2] << 8) | (h[o+3])
     code = code % (10 ** digits)
-    return str(code).zfill(digits)
+    return str(code).zfill(digits) 
 
 # ---- TOTP ----
 def totp(secret_b32: str, for_time: int | None = None,

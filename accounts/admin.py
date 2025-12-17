@@ -268,19 +268,22 @@ class BackupCodeAdmin(admin.ModelAdmin):
 # --- CẤU HÌNH BẢO MẬT (CONFIG) ---
 @admin.register(SecurityConfig)
 class SecurityConfigAdmin(admin.ModelAdmin):
-    list_display = ("get_enforce", "get_lockout", "get_period")
+    # 1. Chỉ hiển thị các cột quan trọng ra danh sách
+    list_display = ("get_enforce", "get_lockout")
+    
+    # 2. QUAN TRỌNG: Chỉ hiện 2 ô này trong Form sửa
+    # (Tự động giấu otp_digits và otp_period đi)
+    fields = ("enforce_2fa", "lockout_threshold")
     
     @admin.display(description="Bắt buộc 2FA toàn hệ thống", ordering="enforce_2fa", boolean=True)
     def get_enforce(self, obj):
         return obj.enforce_2fa
 
-    @admin.display(description="Ngưỡng khóa (số lần sai)", ordering="lockout_threshold")
+    @admin.display(description="Ngưỡng khóa ", ordering="lockout_threshold")
     def get_lockout(self, obj):
         return obj.lockout_threshold
 
-    @admin.display(description="Chu kỳ OTP (giây)", ordering="otp_period")
-    def get_period(self, obj):
-        return obj.otp_period
+    # Đã xóa hàm get_period để không hiện ra nữa
 
     def has_add_permission(self, request): return False
     def has_delete_permission(self, request, obj=None): return False

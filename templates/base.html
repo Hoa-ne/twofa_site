@@ -24,10 +24,7 @@
                 <a href="{% url 'accounts:dashboard' %}">
                     Tài khoản ({{ request.user.username }})
                 </a>
-                {% if request.user.is_staff_role %}
-                    <a href="{% url 'accounts:staff_only' %}">Khu vực Staff</a>
-                    <a href="/admin/">Quản trị</a>
-                {% endif %}
+                
 
                 <a class="btn-small-accent" href="{% url 'accounts:logout' %}">Đăng xuất</a>
             {% else %}
