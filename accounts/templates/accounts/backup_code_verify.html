@@ -1,71 +1,197 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="utf-8">
-    <title>Sử dụng mã khôi phục</title>
-    <style>
-        /* (Copy style từ otp_verify.html) */
-        body { font-family: system-ui, sans-serif; max-width: 360px; margin: 40px auto; line-height: 1.4; }
-        h1 { font-size: 20px; margin-bottom: 8px; text-align: center; }
-        .username { font-size: 14px; color: #555; text-align: center; margin-bottom: 16px; }
-        .box { border: 1px solid #ccc; border-radius: 8px; padding: 16px; }
-        label { font-weight: 600; display: block; margin-bottom: 6px; }
-        input[type="text"], input[type="password"] { /* Sửa selector */
-            width: 100%; padding: 10px 12px; font-size: 16px; border-radius: 6px;
-            border: 1px solid #999; margin-bottom: 12px;
-        }
-        button { width: 100%; padding: 10px 12px; font-size: 16px; border-radius: 6px;
-            border: 0; background: #111; color: #fff; cursor: pointer;
-        }
-        .errorlist { color: #c00; font-size: 14px; margin-bottom: 12px; list-style: none; padding: 0; }
-        .locked-box { background: #fee; border: 1px solid #f66; color: #900; padding: 12px;
-            border-radius: 6px; margin-bottom: 12px; font-size: 14px;
-        }
-        .form-check { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
-        .form-check input { width: auto; margin: 0; }
-        .form-check label { margin: 0; font-weight: normal; font-size: 14px; }
-        .alt-methods { margin-top: 16px; font-size: 14px; text-align: center; }
-        .alt-methods a { text-decoration: none; color: #0066cc; }
-    </style>
-</head>
-<body>
+{% extends "base.html" %}
+{% block title %}Xác thực bằng mã dự phòng{% endblock %}
 
-    <h1>Nhập mã khôi phục</h1>
-    <div class="username">
-        Tài khoản: <strong>{{ username }}</strong>
-    </div>
+{% block content %}
+<style>
+    /* Sử dụng lại CSS của trang Verify OTP để đồng bộ */
+    .verify-container {
+        max-width: 480px;
+        margin: 4rem auto;
+        padding: 2.5rem;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+        text-align: center;
+    }
 
+    /* Icon chìa khóa cho trang Backup */
+    .verify-icon {
+        width: 70px;
+        height: 70px;
+        margin: 0 auto 1.5rem;
+        background: #fff3cd; /* Màu vàng nhạt cho chìa khóa */
+        color: #ffc107;      /* Màu vàng đậm */
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+    }
+
+    /* Style ô nhập liệu */
+    .backup-input-group input {
+        letter-spacing: 0.2em; /* Giảm khoảng cách chữ */
+        text-align: center;
+        font-size: 1.5rem;
+        font-weight: 700;
+        border: 2px solid #dee2e6;
+        border-radius: 12px;
+        padding: 1rem;
+        width: 100%;
+        transition: all 0.3s ease;
+        text-transform: uppercase; /* Tự động viết hoa */
+        color: #212529;
+        background: #f8f9fa;
+        margin-bottom: 0.5rem;
+    }
+    
+    .backup-input-group input:focus {
+        border-color: #ffc107; /* Viền màu vàng khi focus */
+        background: #fff;
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(255, 193, 7, 0.2);
+        transform: translateY(-2px);
+    }
+
+    /* Style KHI CÓ LỖI */
+    .backup-input-group input.is-invalid {
+        border-color: #dc3545 !important;
+        background-color: #fff5f5 !important;
+        color: #dc3545 !important;
+        animation: shake 0.4s ease-in-out;
+    }
+    .backup-input-group input.is-invalid:focus {
+        box-shadow: 0 0 0 4px rgba(220, 53, 69, 0.25);
+    }
+
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+    }
+
+    /* Nút xác nhận màu vàng cam */
+    .btn-verify {
+        width: 100%;
+        padding: 14px;
+        font-size: 1rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-radius: 8px;
+        background: #ffc107;
+        color: #000;
+        border: none;
+        transition: background 0.2s;
+    }
+    .btn-verify:hover {
+        background: #ffca2c;
+        transform: translateY(-1px);
+    }
+
+    .back-link {
+        display: inline-block;
+        margin-top: 1.5rem;
+        color: #6c757d;
+        font-size: 0.9rem;
+        text-decoration: none;
+        padding: 5px 10px;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+    .back-link:hover {
+        color: #0d6efd;
+        background: #f1f3f5;
+    }
+
+    .locked-alert {
+        background: #fff5f5;
+        border: 1px solid #ffc9c9;
+        color: #c92a2a;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        font-size: 0.95rem;
+    }
+</style>
+
+<div class="verify-container">
     {% if locked %}
-        <div class="locked-box">
+        <div class="verify-icon" style="background: #ffe3e3; color: #e03131;">
+            <i class="fas fa-lock"></i>
+        </div>
+        <h2 class="mb-2 fw-bold text-danger">Tạm khóa bảo vệ</h2>
+        <div class="locked-alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
             {{ error }}
         </div>
+        <p class="text-muted small">
+            Vui lòng thử lại sau hoặc 
+            <a href="/forum/contact/" class="fw-bold text-decoration-none">liên hệ Admin</a> để được hỗ trợ.
+        </p>
+
     {% else %}
-        <div class="box">
-            <form method="post">
-                {% csrf_token %}
+        <div class="verify-icon">
+            <i class="fas fa-key"></i>
+        </div>
+        
+        <h2 class="mb-2 fw-bold text-dark">Mã dự phòng</h2>
+        <p class="text-muted mb-4">
+            Sử dụng 1 trong 10 mã dự phòng bạn đã lưu.<br>
+            Mỗi mã chỉ sử dụng được một lần.
+        </p>
 
-                <label for="id_code">Mã khôi phục</label>
-                {{ form.code }}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-info{% endif %} py-2 small mb-3 rounded-3 shadow-sm fw-bold">
+                    {% if message.tags == 'error' %}<i class="fas fa-exclamation-triangle me-1"></i>{% endif %}
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
 
-                {% if form.errors %}
-                    {{ form.errors }}
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="backup-input-group mb-4">
+                <input type="text" name="code" id="backup_input" 
+                       class="{% if form.code.errors %}is-invalid{% endif %}"
+                       placeholder="XXXXXXXX"
+                       autocomplete="off" required autofocus>
+                
+                {% if form.code.errors %}
+                    <div class="text-danger small mt-1 fw-bold">
+                        <i class="fas fa-times-circle me-1"></i>
+                        {{ form.code.errors.0 }}
+                    </div>
                 {% endif %}
+            </div>
 
-                <div class="form-check">
-                    {{ form.remember_me }}
-                    <label for="{{ form.remember_me.id_for_label }}">
-                        Tin cậy thiết bị này
-                    </label>
-                </div>
+            <div class="form-check text-start mb-4 d-flex justify-content-center">
+                {{ form.remember_me }}
+                <label class="form-check-label ms-2 small text-muted user-select-none" for="id_remember_me">
+                    Ghi nhớ thiết bị này
+                </label>
+            </div>
 
-                <button type="submit">Đăng nhập</button>
+            <button type="submit" class="btn btn-verify shadow-sm">
+                Mở khóa tài khoản
+            </button>
+        </form>
 
-                <div class="alt-methods">
-                    <a href="{% url 'accounts:otp_verify' %}">Dùng mã OTP từ ứng dụng/email</a>
-                </div>
-            </form>
+        <div class="mt-2">
+            <a href="{% url 'accounts:otp_verify' %}" class="back-link">
+                <i class="fas fa-arrow-left me-1"></i> Quay lại nhập mã OTP (App)
+            </a>
         </div>
     {% endif %}
+</div>
 
-</body>
-</html>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var input = document.getElementById('backup_input');
+        if(input) input.focus();
+    });
+</script>
+
+{% endblock %}

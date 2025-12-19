@@ -49,9 +49,10 @@
         <div class="post-layout">
             
             <div class="post-user-info">
-                <a href="{% url 'accounts:profile_view' p.author.username %}">
+                <a href="{% url 'accounts:profile_view' p.author.pk %}">
                     <img src="{{ p.author.avatar.url }}" alt="avatar">
-                    <strong>{{ p.author.username }}</strong>
+                    
+                    <strong>{{ p.author.get_display_name }}</strong>
                 </a>
             </div>
             

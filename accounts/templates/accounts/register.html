@@ -1,65 +1,62 @@
 {% extends "base.html" %}
 
-{% block title %}Đăng ký{% endblock %}
+{% block title %}Đăng ký tài khoản{% endblock %}
 
 {% block content %}
-<style>
-  :root{--bg:#f6f7f9;--card:#fff;--muted:#6b7280;--border:#e5e7eb;--text:#111;--accent:#111;}
-  *{box-sizing:border-box}
-  .wrap-auth{max-width:560px;margin:32px auto;padding:0 16px}
-  .card-auth{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px;box-shadow:0 6px 24px rgba(0,0,0,.05)}
-  h1{font-size:22px;margin:0 0 10px}
-  p{margin:0 0 10px;color:#374151}
-  label{display:block;font-weight:600;margin:14px 0 6px}
-  input[type=text],input[type=email],input[type=password]{width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:10px;font-size:16px;outline:none}
-  input:focus{border-color:#94a3b8;box-shadow:0 0 0 4px rgba(148,163,184,.15)}
-  button{width:100%;margin-top:14px;padding:12px 14px;border:0;border-radius:10px;background:var(--accent);color:#fff;font-weight:600;cursor:pointer}
-  button:hover{filter:brightness(1.05)}
-  .muted{color:var(--muted);font-size:13px}
-  .muted a{color:#2563eb;text-decoration:none}
-  .errorlist{margin:10px 0 0;padding:10px;border-radius:10px;background:#fff1f2;border:1px solid #fecdd3;color:#be123c;list-style:none}
-  .field{margin-bottom:6px}
-  .help{color:#6b7280;font-size:12px;margin-top:4px}
-</style>
+<div class="card form-wrapper" style="max-width: 450px;">
+    <div class="card-header">Đăng ký thành viên</div>
 
-<div class="wrap-auth">
-  <div class="card-auth">
-    <h1>Đăng ký</h1>
-    <p>Tạo tài khoản mới để tham gia diễn đàn và bật xác thực 2 lớp (2FA).</p>
-
-    <form method="post" novalidate autocomplete="off">
-      {% csrf_token %}
-
-      {# Lỗi chung (ví dụ: email trùng, username trùng, v.v.) #}
-      {% if form.non_field_errors %}
-        <ul class="errorlist">{{ form.non_field_errors }}</ul>
-      {% endif %}
-
-      {% for field in form %}
-        <div class="field {% if field.name == 'password1' or field.name == 'password2' %}password-wrapper{% endif %}">
-          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-          {{ field }}
-          
-          {% if field.name == 'password1' or field.name == 'password2' %}
-            <button type="button" class="password-toggle-btn" data-target="#{{ field.id_for_label }}">
-              Hiện
-            </button>
-          {% endif %}
-          
-          {% if field.help_text %}
-            <div class="help">{{ field.help_text|safe }}</div>
-          {% endif %}
-          {% if field.errors %}
-            <ul class="errorlist">{{ field.errors }}</ul>
-          {% endif %}
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label class="form-label" for="{{ form.username.id_for_label }}">Tên đăng nhập</label>
+            {{ form.username }}
+            {% if form.username.errors %}
+                <div class="form-error">{{ form.username.errors }}</div>
+            {% endif %}
         </div>
-      {% endfor %}
-      <button type="submit">Tạo tài khoản</button>
+
+        <div class="form-group">
+            <label class="form-label" for="{{ form.nickname.id_for_label }}">Biệt danh hiển thị</label>
+            {{ form.nickname }}
+            {% if form.nickname.errors %}
+                <div class="form-error">{{ form.nickname.errors }}</div>
+            {% endif %}
+            <div class="text-muted small" style="font-size: 0.8rem; margin-top: 4px;">
+                Tên này sẽ hiển thị công khai. Không bắt buộc.
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="{{ form.email.id_for_label }}">Email</label>
+            {{ form.email }}
+            {% if form.email.errors %}
+                <div class="form-error">{{ form.email.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="{{ form.password1.id_for_label }}">Mật khẩu</label>
+            {{ form.password1 }}
+            {% if form.password1.errors %}
+                <div class="form-error">{{ form.password1.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="{{ form.password2.id_for_label }}">Nhập lại mật khẩu</label>
+            {{ form.password2 }}
+            {% if form.password2.errors %}
+                <div class="form-error">{{ form.password2.errors }}</div>
+            {% endif %}
+        </div>
+
+        <button class="btn-primary" type="submit" style="width: 100%;">Đăng ký ngay</button>
     </form>
 
-    <p class="muted" style="margin-top:12px;">
-      Đã có tài khoản? <a href="/accounts/login/">Đăng nhập</a>
-    </p>
-  </div>
+    <div style="margin-top: 15px; text-align: center; font-size: 14px;">
+        Đã có tài khoản? <a href="{% url 'accounts:login' %}">Đăng nhập</a>
+    </div>
 </div>
 {% endblock %}

@@ -7,20 +7,18 @@ from .models import User
 # MỚI: Import form admin mặc định
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 
-# --- FORM MỚI CHO ADMIN ---
-# Form này dùng khi BẤM NÚT "ADD USER"
+# --- FORM MỚI CHO ADMIN (ADD USER) ---
 class UserAdminCreationForm(UserCreationForm):
     class Meta:
         model = User
         # Thêm các trường bạn muốn thấy trên trang "Add user"
         fields = ("username", "email", "role", "is_staff", "is_superuser", "must_setup_2fa")
 
-    # SỬA LẠI HÀM SAVE NÀY (ĐÂY LÀ PHẦN SỬA QUAN TRỌNG)
     def save(self, commit=True):
         # 1. Lấy user object từ form cha (chỉ có username, password)
         user = super().save(commit=False) 
         
-        # 2. THÊM DỮ LIỆU TỪ CÁC TRƯỜNG MỚI CỦA CHÚNG TA (bước bị thiếu)
+        # 2. THÊM DỮ LIỆU TỪ CÁC TRƯỜNG MỚI CỦA CHÚNG TA
         user.email = self.cleaned_data["email"]
         user.role = self.cleaned_data["role"]
         user.is_staff = self.cleaned_data["is_staff"]
@@ -36,13 +34,14 @@ class UserAdminCreationForm(UserCreationForm):
         return user
 
 
-# Form này dùng khi BẤM VÀO SỬA 1 USER CÓ SẴN
+# --- FORM CHO ADMIN (EDIT USER) ---
 class UserAdminChangeForm(UserChangeForm):
     class Meta:
         model = User
         fields = '__all__' # Hiển thị tất cả các trường
 
-# --- CÁC FORM CŨ (CỦA USER) ---
+
+# --- CÁC FORM CHO NGƯỜI DÙNG ---
 
 class RegisterForm(forms.ModelForm):
     password1 = forms.CharField(
@@ -62,7 +61,8 @@ class RegisterForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ["username", "email"]
+        fields = ["username", "email", "nickname"] 
+        
         widgets = {
             "username": forms.TextInput(attrs={
                 "class": "form-input",
@@ -72,26 +72,49 @@ class RegisterForm(forms.ModelForm):
                 "class": "form-input",
                 "placeholder": "Email"
             }),
+            "nickname": forms.TextInput(attrs={
+                "class": "form-input",
+                "placeholder": "Biệt danh (VD: Siêu Nhân)"
+            }),
         }
-        
-        # --- THÊM MỚI KHỐI NÀY ĐỂ XÓA HELP TEXT ---
         help_texts = {
             'username': '',
         }
-        # --- KẾT THÚC SỬA ---
+
+    # [MỚI] Hàm chặn tên nhạy cảm (Anti-Phishing)
+    def clean_nickname(self):
+        nickname = self.cleaned_data.get('nickname', '').strip()
+        
+        if not nickname:
+            return None
+
+        # Danh sách từ cấm
+        forbidden_words = [
+            'admin', 'admiin', 'administrator', 'quản trị', 'quan tri',
+            'mod', 'smod', 'moderator', 
+            'support', 'hỗ trợ', 'hotro', 
+            'system', 'hệ thống', 'root', 'superuser',
+            'bot', 'staff', 'nhân viên'
+        ]
+        
+        lower_nick = nickname.lower()
+
+        for word in forbidden_words:
+            if word in lower_nick:
+                raise forms.ValidationError(f"Biệt danh không được chứa từ '{word}' để tránh gây nhầm lẫn.")
+        
+        return nickname
 
     def clean_password2(self):
         pw1 = self.cleaned_data.get("password1")
         pw2 = self.cleaned_data.get("password2")
         if pw1 and pw2 and pw1 != pw2:
             raise forms.ValidationError("Hai mật khẩu không khớp.")
-        # validate độ mạnh mật khẩu (Django built-in rules)
         validate_password(pw1)
         return pw2
 
     def clean_email(self):
         email = self.cleaned_data.get("email", "").strip()
-        # Chỉ kiểm tra email trùng lặp khi tạo user mới (pk is None)
         if self.instance.pk is None and User.objects.filter(email__iexact=email).exists():
              raise ValidationError("Email đã tồn tại trong hệ thống.")
         return email
@@ -106,7 +129,6 @@ class RegisterForm(forms.ModelForm):
 
 
 class LoginForm(forms.Form):
-    # ... (giữ nguyên form LoginForm) ...
     username = forms.CharField(
         label="Tên đăng nhập",
         widget=forms.TextInput(attrs={
@@ -134,7 +156,6 @@ class LoginForm(forms.Form):
         if user is None:
             raise forms.ValidationError("Sai tài khoản hoặc mật khẩu.")
 
-        # chặn đăng nhập nếu email chưa verify
         if not user.email_verified:
             raise forms.ValidationError("Email chưa được xác thực. Vui lòng kiểm tra hộp thư.")
 
@@ -146,7 +167,6 @@ class LoginForm(forms.Form):
 
 
 class OTPForm(forms.Form):
-    # ... (giữ nguyên form OTPForm) ...
     otp_code = forms.CharField(
         label="Mã OTP",
         max_length=8, 
@@ -164,7 +184,6 @@ class OTPForm(forms.Form):
 
 
 class Enable2FAConfirmForm(forms.Form):
-    # ... (giữ nguyên form Enable2FAConfirmForm) ...
     otp_code = forms.CharField(
         label="Mã OTP",
         max_length=6,
@@ -176,7 +195,6 @@ class Enable2FAConfirmForm(forms.Form):
 
 
 class ChangePasswordForm(forms.Form):
-    # ... (giữ nguyên form ChangePasswordForm) ...
     old_password = forms.CharField(
         label="Mật khẩu hiện tại",
         widget=forms.PasswordInput(attrs={
@@ -222,8 +240,8 @@ class ChangePasswordForm(forms.Form):
 
         return cleaned
 
+
 class BackupCodeForm(forms.Form):
-    # ... (giữ nguyên form BackupCodeForm) ...
     code = forms.CharField(
         label="Mã khôi phục",
         widget=forms.TextInput(attrs={
@@ -239,10 +257,9 @@ class BackupCodeForm(forms.Form):
     )
     
 class ProfileEditForm(forms.ModelForm):
-    # ... (giữ nguyên form ProfileEditForm) ...
     class Meta:
         model = User
-        fields = ["avatar", "bio"]
+        fields = ['avatar', 'nickname', 'first_name', 'last_name', 'bio']
         widgets = {
             "bio": forms.Textarea(attrs={
                 "class": "form-input",
@@ -251,15 +268,49 @@ class ProfileEditForm(forms.ModelForm):
             }),
             "avatar": forms.ClearableFileInput(attrs={
                 "class": "form-input",
-            })
+            }),
+            "nickname": forms.TextInput(attrs={
+                "class": "form-input",
+                "placeholder": "Biệt danh hiển thị (VD: Siêu Nhân)"
+            }),
+            "first_name": forms.TextInput(attrs={
+                "class": "form-input",
+                "placeholder": "Tên"
+            }),
+            "last_name": forms.TextInput(attrs={
+                "class": "form-input",
+                "placeholder": "Họ"
+            }),
         }
         labels = {
             "avatar": "Ảnh đại diện (Avatar)",
             "bio": "Tiểu sử (Bio)",
+            "nickname": "Biệt danh (Nickname)",
+            "first_name": "Tên",
+            "last_name": "Họ",
         }
 
+    # [MỚI] Thêm hàm kiểm tra nickname khi sửa hồ sơ luôn
+    def clean_nickname(self):
+        nickname = self.cleaned_data.get('nickname', '').strip()
+        if not nickname:
+            return None
+
+        forbidden_words = [
+            'admin', 'admiin', 'administrator', 'quản trị', 'quan tri',
+            'mod', 'smod', 'moderator', 'support', 'hỗ trợ', 'hotro', 
+            'system', 'hệ thống', 'root', 'superuser', 'bot', 'staff'
+        ]
+        
+        lower_nick = nickname.lower()
+        for word in forbidden_words:
+            if word in lower_nick:
+                raise forms.ValidationError(f"Biệt danh không được chứa từ '{word}' để tránh gây nhầm lẫn.")
+        
+        return nickname
+
+
 class Disable2FAForm(forms.Form):
-    # ... (giữ nguyên form Disable2FAForm) ...
     password = forms.CharField(
         label="Mật khẩu hiện tại",
         widget=forms.PasswordInput(attrs={

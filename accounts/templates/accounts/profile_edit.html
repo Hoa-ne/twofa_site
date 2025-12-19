@@ -11,17 +11,48 @@
         
         <div class="form-group" style="text-align: center;">
             <label class="form-label" style="font-weight: 600; color: var(--color-text-primary);">Ảnh đại diện hiện tại</label>
-            <img src="{{ user.avatar.url }}" alt="Avatar" style="width: 100px; height: 100px; border-radius: 50%; margin: 10px auto; display: block; border: 2px solid var(--color-border);">
+            <img src="{{ user.avatar.url }}" alt="Avatar" style="width: 100px; height: 100px; border-radius: 50%; margin: 10px auto; display: block; border: 2px solid var(--color-border); object-fit: cover;">
         </div>
 
         <div class="form-group file-upload-group">
             <label class="form-label" for="{{ form.avatar.id_for_label }}">{{ form.avatar.label }}</label>
-            
             {{ form.avatar }} 
-            
             {% if form.avatar.errors %}
                 <div class="form-error">{{ form.avatar.errors }}</div>
             {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="{{ form.nickname.id_for_label }}" style="font-weight: bold;">
+                {{ form.nickname.label }}
+            </label>
+            {{ form.nickname }}
+            
+            {% if form.nickname.errors %}
+                <div class="form-error">{{ form.nickname.errors }}</div>
+            {% endif %}
+            
+            <div style="font-size: 0.85rem; color: #666; margin-top: 5px;">
+                <i class="fas fa-info-circle"></i> Tên này sẽ hiển thị công khai thay cho tên đăng nhập.
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 15px;">
+            <div class="form-group" style="flex: 1;">
+                <label class="form-label" for="{{ form.last_name.id_for_label }}">Họ</label>
+                {{ form.last_name }}
+                {% if form.last_name.errors %}
+                    <div class="form-error">{{ form.last_name.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group" style="flex: 1;">
+                <label class="form-label" for="{{ form.first_name.id_for_label }}">Tên</label>
+                {{ form.first_name }}
+                {% if form.first_name.errors %}
+                    <div class="form-error">{{ form.first_name.errors }}</div>
+                {% endif %}
+            </div>
         </div>
 
         <div class="form-group">
@@ -36,7 +67,7 @@
             <div class="alert-error">{{ form.non_field_errors }}</div>
         {% endif %}
 
-        <button class="btn-primary" type="submit">Lưu thay đổi</button>
+        <button class="btn-primary" type="submit" style="width: 100%; margin-top: 10px;">Lưu thay đổi</button>
     </form>
 </div>
 {% endblock %}

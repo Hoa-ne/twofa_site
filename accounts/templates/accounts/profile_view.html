@@ -1,33 +1,37 @@
 {% extends "base.html" %}
 
-{% block title %}Hồ sơ của {{ profile_user.username }}{% endblock %}
+{% block title %}Hồ sơ của {{ profile_user.get_display_name }}{% endblock %}
 
 {% block content %}
 <div class="card" style="max-width: 800px; margin: 0 auto;">
     <div class="card-header" style="display: flex; align-items: center; gap: 20px;">
-        <img src="{{ profile_user.avatar.url }}" alt="Avatar" style="width: 100px; height: 100px; border-radius: 50%;">
+        <img src="{{ profile_user.avatar.url }}" alt="Avatar" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover;">
         <div>
-            <h1 style="font-size: 24px; margin: 0;">{{ profile_user.username }}</h1>
-            <p style="font-size: 14px; color: #555;">Tham gia: {{ profile_user.date_joined|date:"d/m/Y" }}</p>
+            <h1 style="font-size: 24px; margin: 0;">{{ profile_user.get_display_name }}</h1>
+            
+            <p style="font-size: 14px; color: #555; margin-top: 5px;">Tham gia: {{ profile_user.date_joined|date:"d/m/Y" }}</p>
+            
             {% if request.user == profile_user %}
                 <a href="{% url 'accounts:profile_edit' %}" 
                    style="font-size: 14px; color: #007bff; text-decoration: none;">
-                   Chỉnh sửa hồ sơ
+                   <i class="fas fa-edit"></i> Chỉnh sửa hồ sơ
                 </a>
             {% endif %}
         </div>
     </div>
     
-    {% if profile_user.bio %}
     <div class="card-line" style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px;">
         <strong>Tiểu sử:</strong>
-        <p style="white-space: pre-line; margin-top: 5px;">{{ profile_user.bio }}</p>
+        {% if profile_user.bio %}
+            <p style="white-space: pre-line; margin-top: 5px;">{{ profile_user.bio }}</p>
+        {% else %}
+            <p style="color: #999; font-style: italic; margin-top: 5px;">Người dùng này chưa viết tiểu sử.</p>
+        {% endif %}
     </div>
-    {% endif %}
 </div>
 
 <div class="card" style="max-width: 800px; margin: 20px auto 0;">
-    <div class="card-header">Các bài viết gần đây của {{ profile_user.username }}</div>
+    <div class="card-header">Các bài viết gần đây của {{ profile_user.get_display_name }}</div>
     
     {% for post in page_obj %}
         <div class="thread-card" style="padding: 10px; border-bottom: 1px solid #eee;">
@@ -43,7 +47,9 @@
             </div>
         </div>
     {% empty %}
-        <div class="card-line">Người dùng này chưa có bài viết nào.</div>
+        <div class="card-line" style="padding: 20px; text-align: center; color: #777;">
+            Người dùng này chưa có bài viết nào.
+        </div>
     {% endfor %}
 
     <div class="pagination" style="margin-top: 20px; text-align: center;">

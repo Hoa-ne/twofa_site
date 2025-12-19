@@ -14,8 +14,28 @@ class User(AbstractUser):
     # Thêm verbose_name để hiển thị tiếng Việt
     avatar = models.ImageField(upload_to="avatars/", null=True, blank=True, default="avatars/default.png", verbose_name="Ảnh đại diện")
     bio = models.TextField(blank=True, null=True, help_text="Giới thiệu ngắn về bạn", verbose_name="Tiểu sử")
-    email = models.EmailField("Địa chỉ Email", unique=True) 
+    # ... (Trường nickname giữ nguyên) ...
+    nickname = models.CharField(max_length=50, blank=True, null=True, verbose_name="Biệt danh hiển thị")
 
+    def get_display_name(self):
+        """
+        Thứ tự ưu tiên hiển thị:
+        1. Nickname (Biệt danh)
+        2. Họ và tên đầy đủ
+        3. Thành viên số [ID]
+        """
+        # 1. Ưu tiên Nickname
+        if self.nickname:
+            return self.nickname
+        
+        # 2. Lấy Họ và Tên (nối lại và xóa khoảng trắng thừa)
+        full_name = f"{self.last_name} {self.first_name}".strip()
+        if full_name:
+            return full_name
+        
+        # 3. Nếu lười quá chưa điền gì cả thì gọi là Thành viên số X
+        return f"Thành viên số {self.pk}"
+    email = models.EmailField("Địa chỉ Email", unique=True) 
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default="USER", verbose_name="Vai trò")
     email_verified = models.BooleanField(default=False, verbose_name="Đã xác thực Email")
 
