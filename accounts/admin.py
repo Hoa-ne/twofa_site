@@ -22,6 +22,7 @@ def log_admin_action(request, user, event_type, note=""):
 def reset_otp_secret(modeladmin, request, queryset):
     count = 0
     for user in queryset:
+        # Nhờ setter @property, dòng này sẽ tự động mã hóa lưu vào encrypted_otp_secret
         user.otp_secret = create_otp_secret()
         user.is_2fa_enabled = False
         user.must_setup_2fa = True
@@ -84,7 +85,6 @@ class UserAdmin(DjangoUserAdmin):
     form = UserAdminChangeForm
     add_form = UserAdminCreationForm
 
-    # Các trường hiển thị trong danh sách (dùng hàm get_... để việt hóa tiêu đề)
     list_display = (
         "get_username", "get_email", "get_role", "get_email_verified",
         "get_is_2fa_enabled", "get_otp_locked", "get_is_staff", "get_is_superuser"
@@ -138,18 +138,21 @@ class UserAdmin(DjangoUserAdmin):
         return obj.is_superuser
 
     # --- NÚT ĐỔI MẬT KHẨU ---
-    readonly_fields = ('link_doi_mat_khau',)
-
     @admin.display(description="Mật khẩu")
     def link_doi_mat_khau(self, obj):
         if obj.pk:
             return format_html('<a class="button" href="../password/">Đổi mật khẩu</a>')
         return "-"
 
-    # --- CẤU TRÚC FORM SỬA ---
+    # --- CẤU HÌNH FIELDS (SỬA LẠI ĐỂ FIX LỖI) ---
+    
+    # [QUAN TRỌNG] Thêm otp_secret vào readonly_fields
+    # Django sẽ hiểu đây là property để hiển thị, chứ không phải field để sửa
+    readonly_fields = ('link_doi_mat_khau',)
+
     fieldsets = (
         (None, {"fields": ("username", "link_doi_mat_khau")}),
-        ("Thông tin cá nhân", {"fields": ("first_name", "last_name", "email", "avatar", "bio")}),
+        ("Thông tin cá nhân", {"fields": ("first_name", "last_name", "nickname", "email", "avatar", "bio")}),
         ("Quyền hệ thống", {
             "fields": (
                 "role",
@@ -163,7 +166,8 @@ class UserAdmin(DjangoUserAdmin):
         ("Bảo mật & 2FA", {
             "fields": (
                 "email_verified",
-                "otp_secret",
+                # [ĐÃ XÓA] otp_secret (để ẩn mã giải mã)
+                # [ĐÃ XÓA] encrypted_otp_secret (để ẩn mã hóa)
                 "is_2fa_enabled",
                 "must_setup_2fa",
                 "failed_otp_attempts",
@@ -184,7 +188,7 @@ class UserAdmin(DjangoUserAdmin):
         }),
     )
 
-# --- QUẢN LÝ CHÍNH SÁCH BẢO MẬT ---
+# --- QUẢN LÝ CÁC MODEL KHÁC (GIỮ NGUYÊN) ---
 @admin.register(SecurityPolicy)
 class SecurityPolicyAdmin(admin.ModelAdmin):
     list_display = ("get_require_2fa", "get_updated_at")
@@ -209,7 +213,6 @@ class SecurityPolicyAdmin(admin.ModelAdmin):
         updated = User.objects.update(must_setup_2fa=False)
         messages.success(request, f"Đã bỏ ép buộc 2FA cho {updated} người dùng.")
 
-# --- QUẢN LÝ NHẬT KÝ BẢO MẬT (LOGS) ---
 @admin.register(SecurityLog)
 class SecurityLogAdmin(admin.ModelAdmin):
     list_display = ("get_created_at", "get_user", "get_event", "get_ip", "get_note")
@@ -241,7 +244,6 @@ class SecurityLogAdmin(admin.ModelAdmin):
     def has_add_permission(self, request): return False
     def has_change_permission(self, request, obj=None): return False
 
-# --- QUẢN LÝ MÃ KHÔI PHỤC (BACKUP CODES) ---
 @admin.register(BackupCode)
 class BackupCodeAdmin(admin.ModelAdmin):
     list_display = ("get_user", "get_is_used", "get_created_at")
@@ -265,14 +267,9 @@ class BackupCodeAdmin(admin.ModelAdmin):
     def has_add_permission(self, request): return False
     def has_change_permission(self, request, obj=None): return False
 
-# --- CẤU HÌNH BẢO MẬT (CONFIG) ---
 @admin.register(SecurityConfig)
 class SecurityConfigAdmin(admin.ModelAdmin):
-    # 1. Chỉ hiển thị các cột quan trọng ra danh sách
     list_display = ("get_enforce", "get_lockout")
-    
-    # 2. QUAN TRỌNG: Chỉ hiện 2 ô này trong Form sửa
-    # (Tự động giấu otp_digits và otp_period đi)
     fields = ("enforce_2fa", "lockout_threshold")
     
     @admin.display(description="Bắt buộc 2FA toàn hệ thống", ordering="enforce_2fa", boolean=True)
@@ -282,8 +279,6 @@ class SecurityConfigAdmin(admin.ModelAdmin):
     @admin.display(description="Ngưỡng khóa ", ordering="lockout_threshold")
     def get_lockout(self, obj):
         return obj.lockout_threshold
-
-    # Đã xóa hàm get_period để không hiện ra nữa
 
     def has_add_permission(self, request): return False
     def has_delete_permission(self, request, obj=None): return False

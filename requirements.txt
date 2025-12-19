@@ -8,3 +8,4 @@ pillow
 django-ratelimit
 django-redis
 gunicorn
+cryptography

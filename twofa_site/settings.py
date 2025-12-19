@@ -18,14 +18,17 @@ CSRF_TRUSTED_ORIGINS = [
     'https://nhom8.duckdns.org',
 ]
 INSTALLED_APPS = [
-    # ... (giữ nguyên) ...
+    # ...
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-
+    
+    # [SỬA LẠI DÒNG NÀY] Đổi dấu nháy đơn ' thành nháy kép " cho đồng bộ
+    "django.contrib.humanize", 
+    
     "accounts",
     "forum",
     "django_ratelimit", 
@@ -102,7 +105,8 @@ CACHES = {
 LANGUAGE_CODE = "vi"
 TIME_ZONE = "Asia/Ho_Chi_Minh"
 USE_I18N = True
-USE_TZ = False
+USE_TZ = True
+USE_L10N = True
 
 # --- STATIC FILES (SỬA LẠI ĐƯỜNG DẪN) ---
 STATIC_URL = "/static/"
@@ -148,4 +152,5 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 RATELIMIT_VIEW = 'accounts.views.ratelimited_error_view'
+OTP_ENCRYPTION_KEY = os.getenv("OTP_ENCRYPTION_KEY")
 

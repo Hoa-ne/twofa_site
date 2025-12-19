@@ -2,7 +2,7 @@
 
 {% block title %}{{ thread.title }}{% endblock %}
 
-{% block content %}
+{% load humanize %} {% block content %}
 
 <h1 class="page-heading">{{ thread.title }}</h1>
 
@@ -58,7 +58,7 @@
             
             <div class="post-content-wrap">
                 <div class="post-header">
-                    <span class="post-time">{{ p.created_at|date:"H:i, d/m/Y" }}</span>
+                    <span class="post-time">{{ p.created_at|naturaltime }}</span>
                     
                     {% if request.user == p.author %}
                     <span class="post-actions">

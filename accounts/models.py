@@ -3,6 +3,8 @@ from django.db import models
 from django.utils import timezone
 from django.conf import settings
 from django.contrib.auth.hashers import make_password, check_password
+# Import thư viện mã hóa
+from cryptography.fernet import Fernet
 import secrets
 
 class User(AbstractUser):
@@ -11,37 +13,80 @@ class User(AbstractUser):
         ("STAFF", "Staff"),
         ("USER", "User"),
     )
-    # Thêm verbose_name để hiển thị tiếng Việt
+    
     avatar = models.ImageField(upload_to="avatars/", null=True, blank=True, default="avatars/default.png", verbose_name="Ảnh đại diện")
     bio = models.TextField(blank=True, null=True, help_text="Giới thiệu ngắn về bạn", verbose_name="Tiểu sử")
-    # ... (Trường nickname giữ nguyên) ...
+    
+    # --- PHẦN NICKNAME (Giữ nguyên) ---
     nickname = models.CharField(max_length=50, blank=True, null=True, verbose_name="Biệt danh hiển thị")
 
     def get_display_name(self):
         """
         Thứ tự ưu tiên hiển thị:
-        1. Nickname (Biệt danh)
-        2. Họ và tên đầy đủ
+        1. Nickname
+        2. Họ tên
         3. Thành viên số [ID]
         """
-        # 1. Ưu tiên Nickname
         if self.nickname:
             return self.nickname
         
-        # 2. Lấy Họ và Tên (nối lại và xóa khoảng trắng thừa)
         full_name = f"{self.last_name} {self.first_name}".strip()
         if full_name:
             return full_name
         
-        # 3. Nếu lười quá chưa điền gì cả thì gọi là Thành viên số X
         return f"Thành viên số {self.pk}"
+    
+    # Các trường cơ bản khác
     email = models.EmailField("Địa chỉ Email", unique=True) 
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default="USER", verbose_name="Vai trò")
     email_verified = models.BooleanField(default=False, verbose_name="Đã xác thực Email")
 
-    # 2FA / OTP
-    otp_secret = models.CharField(max_length=64, blank=True, null=True, verbose_name="Mã bí mật OTP (Secret)")
+    # --- [SỬA ĐỔI QUAN TRỌNG] PHẦN BẢO MẬT OTP ---
+    
+    # 1. Đổi tên trường lưu trữ thành 'encrypted_otp_secret'
+    # Tăng độ dài lên 255 để chứa chuỗi mã hóa
+    encrypted_otp_secret = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True, 
+        verbose_name="Mã OTP (Đã mã hóa)"
+    )
+    
     is_2fa_enabled = models.BooleanField(default=False, verbose_name="Đã bật 2FA")
+
+    # 2. Tạo thuộc tính ảo 'otp_secret' để tự động Mã hóa / Giải mã
+    @property
+    def otp_secret(self):
+        """
+        Khi code gọi user.otp_secret: Tự động giải mã từ encrypted_otp_secret
+        """
+        if not self.encrypted_otp_secret:
+            return None
+        try:
+            # Lấy key từ settings (đã cấu hình từ .env)
+            key = settings.OTP_ENCRYPTION_KEY.encode()
+            f = Fernet(key)
+            # Giải mã
+            decrypted_data = f.decrypt(self.encrypted_otp_secret.encode())
+            return decrypted_data.decode()
+        except Exception:
+            return None
+
+    @otp_secret.setter
+    def otp_secret(self, value):
+        """
+        Khi code gán user.otp_secret = "abc": Tự động mã hóa rồi lưu vào encrypted_otp_secret
+        """
+        if value:
+            key = settings.OTP_ENCRYPTION_KEY.encode()
+            f = Fernet(key)
+            # Mã hóa
+            encrypted_data = f.encrypt(value.encode())
+            self.encrypted_otp_secret = encrypted_data.decode()
+        else:
+            self.encrypted_otp_secret = None
+
+    # ---------------------------------------------
 
     must_setup_2fa = models.BooleanField(
         default=True,
