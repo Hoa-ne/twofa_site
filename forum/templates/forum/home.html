@@ -82,7 +82,7 @@
                 <a class="thread-card" href="{{ thread.get_absolute_url }}">
                     <div class="thread-title">{{ thread.title }}</div>
                     <div class="thread-meta">
-                        <i class="far fa-user"></i> <strong>{{ thread.author.username }}</strong> &nbsp;|&nbsp; 
+                        <i class="far fa-user"></i> <strong>{{ thread.author.nickname|default:thread.author.username }}</strong> &nbsp;|&nbsp; 
                         <i class="far fa-folder-open"></i> <strong>{{ thread.category.title }}</strong> &nbsp;|&nbsp; 
                         <i class="far fa-clock"></i> {{ thread.created_at|date:"H:i d/m/Y" }}
                     </div>
@@ -133,5 +133,63 @@
         </div>
     </div>
 </div>
+<style>
+    /* CSS cho bông tuyết */
+    .snowflake {
+        position: fixed;
+        top: -10px;
+        z-index: 9999; /* Luôn nổi lên trên cùng */
+        color: #fff;   /* Màu trắng */
+        user-select: none; /* Không cho bôi đen */
+        pointer-events: none; /* QUAN TRỌNG: Để chuột bấm xuyên qua được (không chặn click link) */
+        text-shadow: 0 0 5px rgba(0,0,0,0.1); /* Bóng mờ nhẹ cho dễ nhìn trên nền trắng */
+        animation-name: fall;
+        animation-timing-function: linear;
+        animation-fill-mode: forwards;
+    }
 
+    /* Hiệu ứng rơi từ trên xuống */
+    @keyframes fall {
+        to {
+            transform: translateY(105vh) rotate(360deg); /* Rơi quá màn hình và xoay */
+        }
+    }
+</style>
+
+<script>
+    function createSnowflake() {
+        const snowflake = document.createElement('div');
+        snowflake.classList.add('snowflake');
+        
+        // Bạn có thể đổi ký tự khác: ❄, ❅, ❆, ✻, •
+        snowflake.innerHTML = '❄'; 
+        
+        // --- CẤU HÌNH NGẪU NHIÊN ---
+        // 1. Vị trí xuất hiện ngang (0% -> 100% màn hình)
+        snowflake.style.left = Math.random() * 100 + 'vw';
+        
+        // 2. Kích thước (10px -> 30px)
+        snowflake.style.fontSize = Math.random() * 20 + 10 + 'px';
+        
+        // 3. Độ mờ (0.5 -> 1)
+        snowflake.style.opacity = Math.random() * 0.5 + 0.5;
+        
+        // 4. Thời gian rơi (3s -> 8s) - Rơi chậm cho lãng mạn
+        const duration = Math.random() * 5 + 3;
+        snowflake.style.animationDuration = duration + 's';
+
+        // Thêm vào trang web
+        document.body.appendChild(snowflake);
+
+        // Tự động xóa sau khi rơi xong để nhẹ máy
+        setTimeout(() => {
+            snowflake.remove();
+        }, duration * 1000);
+    }
+
+    // Tốc độ tạo tuyết (ms). Số càng nhỏ tuyết càng dày.
+    // 100ms = Khá dày
+    // 300ms = Thưa vừa phải
+    setInterval(createSnowflake, 200);
+</script>
 {% endblock %}

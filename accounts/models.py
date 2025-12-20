@@ -19,7 +19,11 @@ class User(AbstractUser):
     
     # --- PHẦN NICKNAME (Giữ nguyên) ---
     nickname = models.CharField(max_length=50, blank=True, null=True, verbose_name="Biệt danh hiển thị")
-
+    allow_email_otp = models.BooleanField(
+        default=True, 
+        verbose_name="Cho phép nhận OTP qua Email",
+        help_text="Nếu bỏ chọn: User chỉ được dùng App Authenticator, không được bấm nút 'Gửi qua Email'."
+    )
     def get_display_name(self):
         """
         Thứ tự ưu tiên hiển thị:

@@ -17,10 +17,10 @@
     </div>
 
     <div class="card-line">
-        <strong>{{ thread.author.username }}</strong>
-        • {{ thread.created_at|date:"H:i d/m/Y" }}
-        • Chuyên mục: {{ thread.category.title }}
-    </div>
+    <strong>{{ thread.author.nickname|default:thread.author.username }}</strong>
+    • {{ thread.created_at|date:"H:i d/m/Y" }}
+    • Chuyên mục: {{ thread.category.title }}
+</div>
 
     {% if request.user.is_staff_role %}
     <div class="staff-actions" style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #eee;">

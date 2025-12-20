@@ -16,7 +16,15 @@ def log_admin_action(request, user, event_type, note=""):
         note=note,
         created_at=timezone.now(),
     )
+admin.action(description=" CHo phép nhận OTP qua mail")
+def enable_email_otp(modeladmin, request, queryset):
+    updated = queryset.update(allow_email_otp=True)
+    messages.success(request, f"Đã cho phép {updated} người dùng sử dụng OTP Email.")
 
+@admin.action(description=" Chặn nhận OTP qua mail - Bắt dùng App")
+def disable_email_otp(modeladmin, request, queryset):
+    updated = queryset.update(allow_email_otp=False)
+    messages.success(request, f"Đã chặn OTP Email của {updated} người dùng.")
 # --- CÁC HÀNH ĐỘNG (ACTIONS) CHO USER ---
 @admin.action(description="Reset mã OTP & Yêu cầu cài đặt lại")
 def reset_otp_secret(modeladmin, request, queryset):
@@ -87,11 +95,13 @@ class UserAdmin(DjangoUserAdmin):
 
     list_display = (
         "get_username", "get_email", "get_role", "get_email_verified",
-        "get_is_2fa_enabled", "get_otp_locked", "get_is_staff", "get_is_superuser"
+        "get_is_2fa_enabled", "allow_email_otp", "get_otp_locked", # <--- Thêm vào đây
+        "get_is_staff", "get_is_superuser"
     )
 
     list_filter = (
         "role", "email_verified", "is_2fa_enabled",
+        "allow_email_otp", # <--- Thêm bộ lọc để lọc ra ai bị chặn
         "otp_locked", "is_staff", "is_superuser", "is_active",
     )
 
@@ -102,6 +112,7 @@ class UserAdmin(DjangoUserAdmin):
         reset_otp_secret, force_require_2fa, disable_require_2fa,
         disable_2fa, unlock_otp, force_password_reset,
         clear_password_reset_flag,
+        enable_email_otp, disable_email_otp # <--- Thêm mới vào cuối danh sách
     ]
 
     # --- VIỆT HÓA TIÊU ĐỀ CỘT ---
@@ -155,20 +166,14 @@ class UserAdmin(DjangoUserAdmin):
         ("Thông tin cá nhân", {"fields": ("first_name", "last_name", "nickname", "email", "avatar", "bio")}),
         ("Quyền hệ thống", {
             "fields": (
-                "role",
-                "is_active",
-                "is_staff",
-                "is_superuser",
-                "groups",
-                "user_permissions",
+                "role", "is_active", "is_staff", "is_superuser", "groups", "user_permissions",
             )
         }),
         ("Bảo mật & 2FA", {
             "fields": (
                 "email_verified",
-                # [ĐÃ XÓA] otp_secret (để ẩn mã giải mã)
-                # [ĐÃ XÓA] encrypted_otp_secret (để ẩn mã hóa)
                 "is_2fa_enabled",
+                "allow_email_otp", # <--- Thêm dòng này vào đây
                 "must_setup_2fa",
                 "failed_otp_attempts",
                 "otp_locked",
@@ -221,6 +226,7 @@ class SecurityLogAdmin(admin.ModelAdmin):
     ordering = ("-created_at",)
     readonly_fields = ("user", "event_type", "ip", "note", "created_at")
 
+
     @admin.display(description="Thời gian", ordering="created_at")
     def get_created_at(self, obj):
         return obj.created_at
@@ -231,7 +237,21 @@ class SecurityLogAdmin(admin.ModelAdmin):
 
     @admin.display(description="Sự kiện", ordering="event_type")
     def get_event(self, obj):
-        return obj.event_type
+        # Bảng dịch mã sang Tiếng Việt
+        translate = {
+            "OTP_SUCCESS": " OTP thành công",
+            "OTP_FAIL": " Nhập sai OTP",
+            "OTP_LOCKED": " Bị khóa OTP",
+            "LOGIN_SUCCESS": "Đăng nhập thường",
+            "ENABLE_2FA": "Bật 2FA",
+            "DISABLE_2FA": "Tắt 2FA",
+            "BACKUP_CODE_USED": "Dùng mã dự phòng",
+            "EMAIL_OTP_SENT": "Đã gửi Email OTP",
+            "RESET_OTP": "Admin Reset OTP",
+            "FORCED_2FA": "Admin ép bật 2FA",
+        }
+        # Nếu không có trong bảng dịch thì hiện mã gốc
+        return translate.get(obj.event_type, obj.event_type)
 
     @admin.display(description="Địa chỉ IP", ordering="ip")
     def get_ip(self, obj):
