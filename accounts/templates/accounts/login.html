@@ -26,7 +26,7 @@
         {% csrf_token %}
 
         <div class="form-group">
-            <label class="form-label">Tên đăng nhập / Username</label>
+            <label class="form-label">Tên đăng nhập </label>
             {{ form.username }}
             {% if form.username.errors %}
                 <div class="form-error">{{ form.username.errors }}</div>
@@ -41,7 +41,7 @@
             {% endif %}
         </div>
 
-        <button class="btn-primary" type="submit">Tiếp tục</button>
+        <button class="btn-primary" type="submit">Đăng nhập</button>
 
         <div class="mt-16 center">
             <a href="{% url 'accounts:password_reset' %}" style="font-size:.8rem;color:#1a73e8;text-decoration:none;">

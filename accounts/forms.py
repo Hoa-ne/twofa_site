@@ -3,10 +3,11 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from .models import User
-
+from .models import SecurityConfig
 # MỚI: Import form admin mặc định
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 
+from .models import User, SecurityConfig, SecurityLog, BackupCode
 # --- FORM MỚI CHO ADMIN (ADD USER) ---
 class UserAdminCreationForm(UserCreationForm):
     class Meta:
@@ -167,31 +168,81 @@ class LoginForm(forms.Form):
 
 
 class OTPForm(forms.Form):
+    # Field nhập mã OTP
     otp_code = forms.CharField(
         label="Mã OTP",
-        max_length=8, 
         widget=forms.TextInput(attrs={
-            "class": "form-input",
-            "placeholder": "Nhập mã OTP 6 số"
+            'class': 'form-input', 
+            # Placeholder tạm thời, sẽ được ghi đè trong __init__
+            'placeholder': 'Nhập mã OTP', 
+            'autocomplete': 'off',
+            'pattern': '[0-9]*', 
+            'inputmode': 'numeric',
+            'autofocus': 'autofocus',
+            'style': 'letter-spacing: 5px; font-size: 1.2rem; text-align: center;'
         })
     )
-    
+
+    # Field Ghi nhớ thiết bị (Thẳng hàng với otp_code)
     remember_me = forms.BooleanField(
-        label="Tin cậy thiết bị này trong 1 ngày",
+        label="Tin cậy thiết bị này trong 30 ngày",
         required=False,
-        widget=forms.CheckboxInput(attrs={"class": "form-check-input"})
+        widget=forms.CheckboxInput(attrs={
+            "class": "form-check-input me-2",
+            "style": "cursor: pointer;"
+        })
     )
+
+    # Hàm khởi tạo (Thẳng hàng với các field trên)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Lấy cấu hình độ dài từ Database
+        try:
+            config = SecurityConfig.get_solo()
+            digits = config.otp_digits
+        except Exception:
+            digits = 6 # Mặc định nếu chưa có DB
+            
+        # Cập nhật thuộc tính field động theo cấu hình
+        self.fields['otp_code'].max_length = digits
+        self.fields['otp_code'].min_length = digits
+        
+        # Cập nhật giao diện (HTML attributes)
+        self.fields['otp_code'].widget.attrs.update({
+            'placeholder': f'Nhập {digits} chữ số',
+            'maxlength': str(digits), # Chặn nhập quá số lượng ký tự ở trình duyệt
+        })
 
 
 class Enable2FAConfirmForm(forms.Form):
     otp_code = forms.CharField(
         label="Mã OTP",
-        max_length=6,
         widget=forms.TextInput(attrs={
             "class": "form-input",
-            "placeholder": "Nhập mã OTP từ ứng dụng Authenticator"
+            "autocomplete": "off",
+            "pattern": "[0-9]*",
+            "inputmode": "numeric",
         })
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Lấy cấu hình độ dài
+        try:
+            config = SecurityConfig.get_solo()
+            digits = config.otp_digits
+        except Exception:
+            digits = 6
+            
+        # Cập nhật giới hạn nhập liệu
+        self.fields['otp_code'].max_length = digits
+        self.fields['otp_code'].min_length = digits
+        self.fields['otp_code'].widget.attrs.update({
+            'placeholder': f'Nhập {digits} chữ số từ ứng dụng',
+            'maxlength': str(digits)
+        })
 
 
 class ChangePasswordForm(forms.Form):
@@ -318,21 +369,45 @@ class Disable2FAForm(forms.Form):
             "placeholder": "Nhập mật khẩu của bạn"
         })
     )
-    otp_code = forms.CharField(
-        label="Mã OTP (từ ứng dụng)",
-        max_length=8, 
+    
+    # [SỬA] Đổi từ otp_code sang backup_code
+    backup_code = forms.CharField(
+        label="Mã dự phòng (Backup Code)",
         widget=forms.TextInput(attrs={
             "class": "form-input",
-            "placeholder": "Nhập mã OTP 6 số"
-        })
+            "placeholder": "VD: a1b2-c3d4",
+            "autocomplete": "off"
+        }),
+        help_text="Nhập một trong các mã dự phòng bạn đã lưu khi bật 2FA."
     )
 
     def __init__(self, user, *args, **kwargs):
-        super().__init__(*args, **kwargs)
         self.user = user
+        super().__init__(*args, **kwargs)
 
     def clean_password(self):
         password = self.cleaned_data.get("password")
         if not self.user.check_password(password):
             raise forms.ValidationError("Mật khẩu không đúng.")
         return password
+
+class EmailConfirmationForm(forms.Form):
+    email = forms.EmailField(
+        label="Nhập địa chỉ Email đăng ký",
+        widget=forms.TextInput(attrs={
+            'class': 'form-input', 
+            'placeholder': 'vd: user@example.com',
+            'autofocus': 'autofocus'
+        })
+    )
+    
+    def __init__(self, *args, **kwargs):
+        self.user_email = kwargs.pop('user_email', None)
+        super().__init__(*args, **kwargs)
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if self.user_email and email != self.user_email:
+            raise forms.ValidationError("Email bạn nhập không khớp với email đăng ký của tài khoản này.")
+        return email
+        

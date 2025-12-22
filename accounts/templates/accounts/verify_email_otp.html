@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card form-wrapper" style="max-width: 500px;">
+    <div class="card-header">Xác nhận Email</div>
+    <div class="card-body">
+        <p class="text-muted" style="margin-bottom: 20px;">
+            Để nhận mã OTP, vui lòng nhập chính xác địa chỉ Email bạn đã dùng để đăng ký tài khoản <strong>{{ username }}</strong>.
+        </p>
+
+        <form method="post">
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+                <div class="alert-error">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            <div class="form-group">
+                <label class="form-label">{{ form.email.label }}</label>
+                {{ form.email }}
+                {% if form.email.errors %}
+                    <div class="form-error">{{ form.email.errors }}</div>
+                {% endif %}
+            </div>
+
+            <button type="submit" class="btn-primary">Gửi mã OTP</button>
+            <a href="{% url 'accounts:otp_verify' %}" class="btn-secondary" style="display:block; text-align:center; margin-top:10px; text-decoration:none; font-size: 0.9rem;">
+                Quay lại nhập mã
+            </a>
+        </form>
+    </div>
+</div>
+{% endblock %}

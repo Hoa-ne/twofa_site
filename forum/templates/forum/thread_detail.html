@@ -132,4 +132,35 @@
         {% endif %}
     {% endif %}
 </div>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Cấu hình: Thời gian cập nhật (ms). 10000 = 10 giây.
+        const UPDATE_INTERVAL = 10000; 
+
+        setInterval(function() {
+            // 1. Gọi ngầm về chính trang hiện tại để lấy dữ liệu mới
+            fetch(window.location.href)
+            .then(response => response.text())
+            .then(html => {
+                // 2. Phân tích HTML trả về
+                var parser = new DOMParser();
+                var doc = parser.parseFromString(html, "text/html");
+                
+                // 3. Lấy nội dung mới của khung chat
+                var newPostList = doc.querySelector(".post-list-container").innerHTML;
+                var oldPostList = document.querySelector(".post-list-container").innerHTML;
+
+                // 4. So sánh: Nếu có gì mới thì thay thế ngay
+                // (Dùng length để so sánh sơ bộ cho nhẹ máy)
+                if (newPostList.length !== oldPostList.length || newPostList !== oldPostList) {
+                    document.querySelector(".post-list-container").innerHTML = newPostList;
+                    
+                    // (Tùy chọn) Có thể phát âm thanh thông báo ở đây nếu muốn
+                    console.log("Đã cập nhật tin nhắn mới!");
+                }
+            })
+            .catch(err => console.log('Đang chờ kết nối...', err));
+        }, UPDATE_INTERVAL);
+    });
+</script>
 {% endblock %}

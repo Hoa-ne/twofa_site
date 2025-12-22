@@ -198,10 +198,46 @@ class SecurityLog(models.Model):
         verbose_name_plural = "Nhật ký bảo mật"
 
 
+# accounts/models.py
+
 class SecurityConfig(models.Model):
     id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
-    enforce_2fa = models.BooleanField(default=False, verbose_name="Bắt buộc 2FA toàn hệ thống", help_text="Bắt buộc tất cả tài khoản phải bật 2FA")
-    otp_digits = models.PositiveSmallIntegerField(default=6, verbose_name="Độ dài OTP")
+    
+    enforce_for_admin = models.BooleanField(
+        default=True, 
+        verbose_name="Bắt buộc 2FA với Admin", 
+        help_text="Bắt buộc tài khoản có quyền Admin/Superuser phải bật 2FA"
+    )
+    enforce_for_staff = models.BooleanField(
+        default=False, 
+        verbose_name="Bắt buộc 2FA với Staff", 
+        help_text="Bắt buộc tài khoản nhân viên (Staff) phải bật 2FA"
+    )
+    enforce_for_user = models.BooleanField(
+        default=False, 
+        verbose_name="Bắt buộc 2FA với User", 
+        help_text="Bắt buộc người dùng thường phải bật 2FA"
+    )
+
+    # --- Cấu hình OTP Email toàn hệ thống ---
+    allow_email_otp_system = models.BooleanField(
+        default=True,
+        verbose_name="Cho phép OTP qua Email (Toàn hệ thống)",
+        help_text="Nếu tắt: Không ai được dùng Email để nhận OTP, bắt buộc dùng App (Google Auth)."
+    )
+
+    # --- [SỬA ĐỔI] Thêm choices cho độ dài OTP ---
+    OTP_DIGITS_CHOICES = (
+        (6, "6 chữ số (Tiêu chuẩn)"),
+        (8, "8 chữ số (Bảo mật cao)"),
+    )
+    
+    otp_digits = models.PositiveSmallIntegerField(
+        default=6, 
+        verbose_name="Độ dài OTP",
+        choices=OTP_DIGITS_CHOICES  # <--- Thêm dòng này để tạo menu chọn
+    )
+    
     otp_period = models.PositiveSmallIntegerField(default=30, verbose_name="Chu kỳ OTP (giây)")
     lockout_threshold = models.PositiveSmallIntegerField(default=5, verbose_name="Ngưỡng khóa (lần sai)", help_text="Sai OTP tối đa trước khi khoá")
 

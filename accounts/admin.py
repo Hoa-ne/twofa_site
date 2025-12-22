@@ -287,18 +287,34 @@ class BackupCodeAdmin(admin.ModelAdmin):
     def has_add_permission(self, request): return False
     def has_change_permission(self, request, obj=None): return False
 
+# accounts/admin.py
+
 @admin.register(SecurityConfig)
 class SecurityConfigAdmin(admin.ModelAdmin):
-    list_display = ("get_enforce", "get_lockout")
-    fields = ("enforce_2fa", "lockout_threshold")
+    # 1. Hiển thị thông tin ra danh sách bên ngoài
+    list_display = ("__str__", "otp_digits", "otp_period", "allow_email_otp_system")
     
-    @admin.display(description="Bắt buộc 2FA toàn hệ thống", ordering="enforce_2fa", boolean=True)
-    def get_enforce(self, obj):
-        return obj.enforce_2fa
+    # 2. Gom nhóm và HIỂN THỊ CÁC TRƯỜNG CẦN SỬA
+    fieldsets = (
+        ("Cấu hình OTP (Quan trọng)", {
+            # [QUAN TRỌNG] Phải khai báo tên trường ở đây thì mới hiện ra để sửa
+            "fields": ("otp_digits", "otp_period", "lockout_threshold") 
+        }),
+        ("Phân quyền Bắt buộc 2FA", {
+            "fields": ("enforce_for_admin", "enforce_for_staff", "enforce_for_user"),
+            "description": "Tích chọn nhóm nào thì nhóm đó sẽ bị BẮT BUỘC phải bật 2FA khi đăng nhập."
+        }),
+        ("Cấu hình Email OTP", {
+            "fields": ("allow_email_otp_system",),
+            "description": "Nếu bỏ tích: Toàn bộ hệ thống sẽ KHÔNG được dùng Email để nhận OTP."
+        }),
+    )
 
-    @admin.display(description="Ngưỡng khóa ", ordering="lockout_threshold")
-    def get_lockout(self, obj):
-        return obj.lockout_threshold
+    # 3. Các hàm chặn thêm/xóa (Giữ nguyên để đảm bảo chỉ có 1 cấu hình)
+    def has_add_permission(self, request):
+        if SecurityConfig.objects.exists():
+            return False
+        return True
 
-    def has_add_permission(self, request): return False
-    def has_delete_permission(self, request, obj=None): return False
+    def has_delete_permission(self, request, obj=None):
+        return False
