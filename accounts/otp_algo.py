@@ -1,30 +1,30 @@
 # accounts/otp_algo.py
-# HOTP/TOTP thuần Python theo RFC 4226 & RFC 6238 (SHA-1, 6 digits, period=30)
+# HOTP/TOTP  theo RFC 4226 & RFC 6238 (SHA-1, 6 digits, period=30)
 
 import hmac, hashlib, struct, time, base64, secrets
 from urllib.parse import quote
 
-# Thêm 2 import này
+
 import qrcode
 from io import BytesIO
 
-# ---- Secret (Base32) ----
+#  Secret 
 def generate_base32_secret(nbytes: int = 20) -> str:
-    # ... (giữ nguyên hàm) ...
+    
     raw = secrets.token_bytes(nbytes)
     b32 = base64.b32encode(raw).decode("ascii")
     return b32.strip("=").upper()
 
 def _b32decode(secret_b32: str) -> bytes:
-    # ... (giữ nguyên hàm) ...
+    
     s = secret_b32.strip().replace(" ", "").upper()
     pad = (-len(s)) % 8
     s += "=" * pad
     return base64.b32decode(s, casefold=True)
 
-# ---- HOTP ----
+#  HOTP
 def hotp(secret_b32: str, counter: int, digits: int = 6, algo: str = "SHA1") -> str:
-    # ... (giữ nguyên hàm) ...
+    
     key = _b32decode(secret_b32)
     msg = struct.pack(">Q", counter)
     h = hmac.new(key, msg, getattr(hashlib, algo.lower())).digest()
@@ -33,10 +33,10 @@ def hotp(secret_b32: str, counter: int, digits: int = 6, algo: str = "SHA1") -> 
     code = code % (10 ** digits)
     return str(code).zfill(digits) 
 
-# ---- TOTP ----
+# TOTP 
 def totp(secret_b32: str, for_time: int | None = None,
          period: int = 30, digits: int = 6, algo: str = "SHA1") -> str:
-    # ... (giữ nguyên hàm) ...
+    
     if for_time is None:
         for_time = int(time.time())
     counter = int((for_time) // period)
@@ -45,7 +45,7 @@ def totp(secret_b32: str, for_time: int | None = None,
 def verify_totp(secret_b32: str, code_str: str, period: int = 30,
                 digits: int = 6, algo: str = "SHA1", window: int = 1,
                 now: int | None = None) -> bool:
-    # ... (giữ nguyên hàm) ...
+    
     code = (code_str or "").strip().replace(" ", "")
     if not (code.isdigit() and len(code) == digits):
         return False
@@ -57,10 +57,10 @@ def verify_totp(secret_b32: str, code_str: str, period: int = 30,
             return True
     return False
 
-# ---- otpauth URI (để import vào Authenticator) ----
+#  otpauth URI để import vào Authenticator
 def provisioning_uri(account_name: str, issuer_name: str, secret_b32: str,
                      algo: str = "SHA1", digits: int = 6, period: int = 30) -> str:
-    # ... (giữ nguyên hàm) ...
+    
     label = f"{issuer_name}:{account_name}"
     params = (
         f"secret={secret_b32}"
@@ -71,9 +71,6 @@ def provisioning_uri(account_name: str, issuer_name: str, secret_b32: str,
     )
     return f"otpauth://totp/{quote(label)}?{params}"
 
-# ----------------------------------
-# THÊM HÀM MỚI TỪ UTILS.PY CŨ
-# ----------------------------------
 def qr_code_base64(data: str) -> str:
     """
     Sinh QR code PNG base64 để nhúng vào <img src="data:image/png;base64, ...">
@@ -86,4 +83,5 @@ def qr_code_base64(data: str) -> str:
 
     buffer = BytesIO()
     img.save(buffer, format="PNG")
+
     return base64.b64encode(buffer.getvalue()).decode("utf-8")
