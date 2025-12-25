@@ -9,9 +9,10 @@ from django.views.decorators.http import require_POST
 from .models import Category, Thread, Post
 from .forms import ThreadCreateForm, PostForm
 
-# Lấy User model hiện tại
+# Lay User model hien tai
 User = get_user_model()
 
+# Trang chu dien dan: hien thi danh sach chuyen muc va chu de moi nhat
 def home(request):
     """
     Dashboard diễn đàn:
@@ -49,13 +50,14 @@ def home(request):
     context = {
         "categories": Category.objects.all(),
         "latest_threads": latest_threads,
-        "latest_threads_sidebar": latest_threads_sidebar, # Thêm dòng này để fix lỗi sidebar trống
+        "latest_threads_sidebar": latest_threads_sidebar, 
         "stats": stats,
-        "current_sort": sort_by, # Quan trọng: để highlight nút đang chọn
+        "current_sort": sort_by, 
     }
     return render(request, "forum/home.html", context)
 
 
+# Liet ke cac chu de thuoc mot chuyen muc cu the
 @login_required
 def category_detail(request, slug):
     """Liệt kê các chủ đề trong một chuyên mục."""
@@ -80,6 +82,7 @@ def category_detail(request, slug):
     return render(request, "forum/category_detail.html", context)
 
 
+# Tao chu de thao luan moi bao gom ca bai viet dau tien
 @login_required
 def thread_create(request):
     """Tạo chủ đề mới (Tạo Thread + Post đầu tiên)."""
@@ -114,6 +117,7 @@ def thread_create(request):
     return render(request, "forum/thread_create.html", {"form": form})
 
 
+# Xem chi tiet noi dung chu de va danh sach cac binh luan
 def thread_detail(request, pk):
     """Xem chi tiết chủ đề và danh sách bình luận (có phân trang)."""
     thread = get_object_or_404(
@@ -158,12 +162,13 @@ def thread_detail(request, pk):
 
     context = {
         "thread": thread,
-        "page_obj": page_obj, # Dùng chung object page_obj để loop trong template
+        "page_obj": page_obj, 
         "form": form,
     }
     return render(request, "forum/thread_detail.html", context)
 
 
+# Chinh sua noi dung bai viet da dang
 @login_required
 def post_edit_view(request, pk):
     """Sửa bài viết."""
@@ -186,6 +191,7 @@ def post_edit_view(request, pk):
     return render(request, "forum/post_form.html", {"form": form, "post": post})
 
 
+# Xoa bai viet khoi he thong
 @login_required
 def post_delete_view(request, pk):
     """Xóa bài viết (Chỉ nhận POST để an toàn)."""
@@ -204,13 +210,12 @@ def post_delete_view(request, pk):
     return render(request, "forum/post_confirm_delete.html", {"post": post})
 
 
+# Khoa hoac mo khoa chu de thao luan
 @require_POST
 def toggle_lock_view(request, pk):
     """Admin/Staff khóa hoặc mở khóa chủ đề."""
     thread = get_object_or_404(Thread, pk=pk)
     
-    # Giả định model User có method is_staff_role() như code cũ của bạn
-    # Nếu dùng User mặc định của Django thì sửa thành: if not request.user.is_staff:
     if not getattr(request.user, 'is_staff_role', lambda: request.user.is_staff)():
         return HttpResponseForbidden("Bạn không có quyền thực hiện hành động này.")
     
@@ -220,6 +225,7 @@ def toggle_lock_view(request, pk):
     return redirect("forum:thread_detail", pk=thread.id)
 
 
+# Xu ly thich hoac bo thich bai viet bang AJAX
 @login_required
 @require_POST
 def toggle_like_view(request, pk):
@@ -239,6 +245,7 @@ def toggle_like_view(request, pk):
     })
 
 
+# Hien thi trang thong tin lien he
 def contact_view(request):
     """Trang liên hệ tĩnh."""
     return render(request, "contact.html")

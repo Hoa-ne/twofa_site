@@ -8,17 +8,21 @@ load_dotenv(BASE_DIR / ".env")
 SECRET_KEY = os.getenv("SECRET_KEY")
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
+# Danh sach cac ten mien va IP duoc phep truy cap vao server
 ALLOWED_HOSTS = [
     "nhom8.duckdns.org",
     "47.130.23.25",
     "localhost",
     "127.0.0.1",
 ]
+
+# Danh sach cac ten mien tin cay cho bao mat CSRF
 CSRF_TRUSTED_ORIGINS = [
     'https://nhom8.duckdns.org',
 ]
+
+# Khai bao cac ung dung (Apps) duoc cai dat trong du an
 INSTALLED_APPS = [
-    # ...
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -26,7 +30,6 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     
-    # [SỬA LẠI DÒNG NÀY] Đổi dấu nháy đơn ' thành nháy kép " cho đồng bộ
     "django.contrib.humanize", 
     
     "accounts",
@@ -34,8 +37,8 @@ INSTALLED_APPS = [
     "django_ratelimit", 
 ]
 
+# Cau hinh cac lop trung gian xu ly request va response
 MIDDLEWARE = [
-    # ... (giữ nguyên) ...
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -48,8 +51,8 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "twofa_site.urls"
 
+# Cau hinh giao dien Template HTML
 TEMPLATES = [
-    # ... (giữ nguyên) ...
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [BASE_DIR / "templates"],
@@ -67,8 +70,8 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "twofa_site.wsgi.application"
 
+# Cau hinh ket noi co so du lieu MySQL
 DATABASES = {
-    # ... (giữ nguyên) ...
     "default": {
         "ENGINE": "django.db.backends.mysql",
         "NAME": os.getenv("DB_NAME"),
@@ -82,43 +85,45 @@ DATABASES = {
     }
 }
 
+# Chi dinh model nguoi dung tuy chinh
 AUTH_USER_MODEL = "accounts.User"
 
+# Cac bo kiem tra do manh cua mat khau
 AUTH_PASSWORD_VALIDATORS = [
-    # ... (giữ nguyên) ...
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 8}},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
-# --- CẤU HÌNH CACHE CHO DJANGO-RATELIMIT ---
-# Sử dụng REDIS làm cache (hỗ trợ atomic increment)
+
+# Cau hinh Redis lam bo nho Cache va ho tro Rate Limit
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/1",  # Dùng Redis ở local, DB số 1
+        "LOCATION": "redis://127.0.0.1:6379/1", 
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         }
     }
 }
+
+# Cau hinh ngon ngu va mui gio
 LANGUAGE_CODE = "vi"
 TIME_ZONE = "Asia/Ho_Chi_Minh"
 USE_I18N = True
 USE_TZ = True
 USE_L10N = True
 
-# --- STATIC FILES (SỬA LẠI ĐƯỜNG DẪN) ---
+# Cau hinh duong dan den cac file tinh (CSS, JS, Images)
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "static_collected"
-# SỬA DÒNG DƯỚI ĐÂY:
-STATICFILES_DIRS = [ BASE_DIR / "static" ] # Bỏ "twofa_site/"
+STATICFILES_DIRS = [ BASE_DIR / "static" ]
 
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# Cau hinh gui Email qua SMTP Google
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-# ... (giữ nguyên cấu hình email) ...
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
@@ -126,31 +131,35 @@ EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
+# Duong dan mac dinh cho Login va Logout
 LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/accounts/dashboard/"
 LOGOUT_REDIRECT_URL = "/"
 
+# Thong tin chung ve Website
 SITE_NAME = os.getenv("SITE_NAME", "TwoFA Demo")
 SITE_DOMAIN = os.getenv("SITE_DOMAIN", "http://127.0.0.1:8000")
 
-# --- CẤU HÌNH SESSION VÀ BẢO MẬT ---
-# Thời hạn session (ví dụ 1 ngày) cho "Tin cậy thiết bị"
+# Thoi gian song cua session (1 ngay)
 SESSION_COOKIE_AGE = 86400 
 
-# Các cài đặt bảo mật (bạn đã có)
+# Cac cau hinh bao mat SSL/HTTPS cho moi truong Production
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_SSL_REDIRECT = True
 
-# THÊM CÁC HEADER BẢO MẬT (quan trọng cho production)
-SECURE_HSTS_SECONDS = 31536000  # 1 năm
+# Cau hinh bao mat HSTS chan truy cap HTTP thuong
+SECURE_HSTS_SECONDS = 31536000 
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 
-# Cấu hình cho phép người dùng tải file lên (ví dụ: Avatar)
+# Cau hinh noi luu tru file do nguoi dung upload (Media)
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
-RATELIMIT_VIEW = 'accounts.views.ratelimited_error_view'
-OTP_ENCRYPTION_KEY = os.getenv("OTP_ENCRYPTION_KEY")
 
+# Duong dan xu ly khi nguoi dung bi chan do spam (Rate Limit)
+RATELIMIT_VIEW = 'accounts.views.ratelimited_error_view'
+
+# Khoa bi mat de ma hoa du lieu OTP trong database
+OTP_ENCRYPTION_KEY = os.getenv("OTP_ENCRYPTION_KEY")

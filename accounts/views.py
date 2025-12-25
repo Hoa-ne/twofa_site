@@ -10,37 +10,31 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.utils import timezone
 from datetime import timedelta
-from .forms import ProfileEditForm
 from django.core.paginator import Paginator
 from collections import defaultdict, Counter
-from django.db.models import Count
-from datetime import timedelta
-from .forms import EmailConfirmationForm
-# Import decorator của ratelimit
+from django.db.models import Count, F
+from django.db.models.functions import TruncDate
+from django.contrib.sessions.models import Session
+import time
+import secrets
+import hmac
+
 from django_ratelimit.decorators import ratelimit
 
-from .models import User, SecurityPolicy, SecurityLog, SecurityConfig
+from .models import User, SecurityPolicy, SecurityLog, SecurityConfig, BackupCode
 from .forms import (
     RegisterForm, LoginForm, OTPForm, Enable2FAConfirmForm,
-    ChangePasswordForm, BackupCodeForm, Disable2FAForm
+    ChangePasswordForm, BackupCodeForm, Disable2FAForm,
+    ProfileEditForm, EmailConfirmationForm
 )
 from .tokens import email_verification_token
 from .otp_algo import (
     generate_base32_secret, provisioning_uri, verify_totp,
     qr_code_base64
 )
-from django.db.models import Count, F
-from django.db.models.functions import TruncDate
-import time
-import secrets
-import hmac
-from .models import User, SecurityConfig, BackupCode, SecurityLog
-from django.contrib.sessions.models import Session
 
-# --- 1. HÀM LẤY IP THỰC TẾ CỦA CLIENT ---
-
+# Lay dia chi IP thuc cua client ke ca qua Proxy
 def get_client_ip(request):
-    """Lấy địa chỉ IP thực của client (kể cả đi qua Proxy / Load Balancer)."""
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
         ip = x_forwarded_for.split(',')[0].strip()
@@ -48,29 +42,18 @@ def get_client_ip(request):
         ip = request.META.get('REMOTE_ADDR')
     return ip
 
-
+# Ham boc su dung IP lam key cho ratelimit
 def ip_key_wrapper(group, request):
-    """Hàm wrapper sử dụng IP làm key cho ratelimit."""
     return get_client_ip(request)
 
-
-# --- 2. HÀM TẠO KEY RÀNG BUỘC IP + TÊN ĐĂNG NHẬP ---
-
+# Tao key gioi han tan suat dua tren IP va ten dang nhap
 def get_ratelimit_key(group, request):
-    """
-    Key giới hạn tần suất linh hoạt: kết hợp IP và tên đăng nhập.
-
-    - Mục đích: Nếu một người dùng bị chặn thì không ảnh hưởng tới người dùng khác
-      đang dùng chung mạng / cùng IP.
-    """
     ip = get_client_ip(request)
     username = ""
 
-    # Trường hợp 1: Người dùng đã đăng nhập (ví dụ: đổi mật khẩu, tắt 2FA)
     if request.user.is_authenticated:
         username = request.user.username
 
-    # Trường hợp 2: Đang trong bước nhập OTP/Backup (chưa login hoàn toàn, lưu trong session)
     elif "pre_2fa_user_id" in request.session:
         try:
             uid = request.session["pre_2fa_user_id"]
@@ -79,20 +62,16 @@ def get_ratelimit_key(group, request):
         except User.DoesNotExist:
             username = "unknown"
 
-    # Trường hợp 3: Đang gửi form đăng nhập (lấy username từ POST)
     elif request.method == "POST" and "username" in request.POST:
         username = request.POST.get("username", "").strip()
 
-    # Nếu không xác định được username (ví dụ chỉ load trang GET), chỉ dùng IP
     if not username:
         return ip
 
-    # Trả về key kết hợp, ví dụ: "192.168.1.1-admin"
     return f"{ip}-{username}"
 
-
+# Ghi lai nhat ky su kien bao mat vao he thong
 def record_security_event(user, event_type, request=None, note=""):
-    """Ghi log sự kiện bảo mật (login, OTP sai, bật/tắt 2FA, v.v.)."""
     user_ip = get_client_ip(request) if request else ""
     ua_string = ""
     if request:
@@ -107,24 +86,18 @@ def record_security_event(user, event_type, request=None, note=""):
         created_at=timezone.now(),
     )
 
-
+# Thiet lap thoi gian het han cua phien dang nhap
 def _set_session_expiry(request, remember_me: bool):
-    """Thiết lập thời hạn session (ghi nhớ đăng nhập hoặc chỉ cho tới khi đóng trình duyệt)."""
     if remember_me:
         expiry_seconds = getattr(settings, "SESSION_COOKIE_AGE", 2592000)
         request.session.set_expiry(expiry_seconds)
     else:
-        # 0 = hết phiên khi đóng trình duyệt
         request.session.set_expiry(0)
 
-
+# Thuc hien dang nhap hoan chinh sau khi qua cac buoc kiem tra
 def _perform_login(request, user, remember_me: bool):
-    """
-    Thực hiện đăng nhập hoàn chỉnh sau khi đã qua tất cả bước kiểm tra (OTP, 2FA, v.v.).
-    """
     _set_session_expiry(request, remember_me)
 
-    # Đánh dấu thiết bị tin cậy nếu người dùng chọn nhớ
     if remember_me:
         request.session['2fa_trusted'] = True
         request.session['2fa_trusted_user_id'] = user.id
@@ -135,16 +108,14 @@ def _perform_login(request, user, remember_me: bool):
     login(request, user)
     request.session.pop("pre_2fa_user_id", None)
 
-    # Nếu bị yêu cầu bắt buộc bật 2FA hoặc đổi mật khẩu thì điều hướng sang đó
     if user.must_setup_2fa and not user.is_2fa_enabled:
         return redirect("accounts:enable_2fa")
     if user.must_change_password:
         return redirect("accounts:change_password")
     return redirect("accounts:dashboard")
 
-
+# Gui email kich hoat tai khoan cho nguoi dung moi
 def send_activation_email(request, user):
-    """Gửi email kích hoạt tài khoản cho người dùng mới đăng ký."""
     uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
     token = email_verification_token.make_token(user)
     domain = (getattr(settings, "SITE_DOMAIN", "") or "").rstrip("/") or f"http://{request.get_host()}"
@@ -158,9 +129,8 @@ def send_activation_email(request, user):
     )
     send_mail(subject, message, getattr(settings, "DEFAULT_FROM_EMAIL", None), [user.email], fail_silently=False)
 
-
+# Xu ly lien ket kich hoat tai khoan tu email
 def activate_email_view(request, uidb64, token):
-    """Xử lý liên kết kích hoạt tài khoản gửi qua email."""
     UserModel = get_user_model()
     try:
         uid = force_str(urlsafe_base64_decode(uidb64))
@@ -179,9 +149,8 @@ def activate_email_view(request, uidb64, token):
         messages.error(request, "Liên kết kích hoạt không hợp lệ hoặc đã hết hạn.")
         return redirect("accounts:register")
 
-
+# Dang ky tai khoan moi va gui email kich hoat
 def register_view(request):
-    """Đăng ký tài khoản mới, gửi email kích hoạt."""
     if request.method == "POST":
         form = RegisterForm(request.POST)
         if form.is_valid():
@@ -190,7 +159,6 @@ def register_view(request):
             user.role = "USER"
             user.is_active = False
 
-            # Kiểm tra chính sách: có bắt buộc bật 2FA cho user mới không
             must_setup_2fa = True
             try:
                 policy = SecurityPolicy.objects.first()
@@ -215,8 +183,7 @@ def register_view(request):
     form = RegisterForm()
     return render(request, "accounts/register.html", {"form": form})
 
-
-# Dùng key=get_ratelimit_key để giới hạn theo cặp IP - tên đăng nhập
+# Xu ly dang nhap kiem tra 2FA va phan quyen
 @ratelimit(key=get_ratelimit_key, rate='10/m', block=True)
 def login_view(request):
     if request.method == "POST":
@@ -224,39 +191,30 @@ def login_view(request):
         if form.is_valid():
             user = form.cleaned_data["user"]
             
-            # Lấy cấu hình bảo mật
             config = SecurityConfig.get_solo()
 
-            # --- [LOGIC MỚI] Kiểm tra xem user này có bị bắt buộc 2FA không ---
             must_have_2fa = False
 
-            # 1. Kiểm tra Admin (Role ADMIN hoặc Superuser)
             if user.role == 'ADMIN' or user.is_superuser:
                 if config.enforce_for_admin:
                     must_have_2fa = True
             
-            # 2. Kiểm tra Staff
             elif user.role == 'STAFF':
                 if config.enforce_for_staff:
                     must_have_2fa = True
             
-            # 3. Kiểm tra User thường
-            else: # user.role == 'USER'
+            else:
                 if config.enforce_for_user:
                     must_have_2fa = True
 
-            # Ngoài ra, vẫn giữ logic ép buộc riêng lẻ từng user (nếu có)
             if user.must_setup_2fa:
                 must_have_2fa = True
 
-            # --- TRƯỜNG HỢP 1: BẮT BUỘC PHẢI CÓ 2FA ---
             if must_have_2fa:
-                # Nếu chưa bật 2FA -> Ép đi bật ngay
                 if not user.is_2fa_enabled:
                     login(request, user)
                     request.session.pop("pre_2fa_user_id", None)
                     
-                    # Lấy tên role hiển thị cho thân thiện
                     role_name = "Người dùng"
                     if user.role == 'ADMIN': role_name = "Quản trị viên"
                     elif user.role == 'STAFF': role_name = "Nhân viên"
@@ -265,23 +223,19 @@ def login_view(request):
                         request,
                         f"Hệ thống yêu cầu nhóm {role_name} BẮT BUỘC bảo mật 2 lớp. Vui lòng kích hoạt ngay."
                     )
-                    # Xóa trạng thái tin cậy để ép xác thực
                     request.session.pop('2fa_trusted', None)
                     request.session.pop('2fa_trusted_user_id', None)
                     return redirect("accounts:enable_2fa")
 
-                # Đã bật 2FA -> Kiểm tra thiết bị tin cậy
                 if request.session.get('2fa_trusted', False) and \
                    request.session.get('2fa_trusted_user_id') == user.id:
                     
                     record_security_event(user, "LOGIN_SUCCESS", request=request, note="Đăng nhập (Thiết bị tin cậy)")
                     return _perform_login(request, user, True)
 
-                # Chưa tin cậy -> Chuyển sang nhập OTP
                 request.session["pre_2fa_user_id"] = user.id
                 return redirect("accounts:otp_verify")
 
-            # --- TRƯỜNG HỢP 2: KHÔNG BẮT BUỘC (NHƯNG NGƯỜI DÙNG TỰ BẬT) ---
             if user.is_2fa_enabled:
                 if request.session.get('2fa_trusted', False) and \
                    request.session.get('2fa_trusted_user_id') == user.id:
@@ -291,7 +245,6 @@ def login_view(request):
                 request.session["pre_2fa_user_id"] = user.id
                 return redirect("accounts:otp_verify")
 
-            # --- TRƯỜNG HỢP 3: ĐĂNG NHẬP THƯỜNG (KHÔNG 2FA) ---
             remember_me = False
             record_security_event(user, "LOGIN_SUCCESS", request=request, note="Đăng nhập không dùng 2FA")
             return _perform_login(request, user, remember_me)
@@ -300,11 +253,9 @@ def login_view(request):
 
     return render(request, "accounts/login.html", {"form": form})
 
-
-# Dùng key=get_ratelimit_key cho bước xác thực OTP
+# Xac thuc ma OTP TOTP hoac Email de hoan tat dang nhap
 @ratelimit(key=get_ratelimit_key, rate='10/m', block=True)
 def otp_verify_view(request):
-    """View nhập mã OTP (TOTP hoặc OTP email)."""
     user_id = request.session.get("pre_2fa_user_id")
     if not user_id:
         return redirect("accounts:login")
@@ -312,7 +263,6 @@ def otp_verify_view(request):
     user = get_object_or_404(User, pk=user_id)
     config = SecurityConfig.get_solo()
 
-    # Tài khoản đang bị khóa OTP
     if user.otp_locked:
         record_security_event(
             user,
@@ -341,18 +291,16 @@ def otp_verify_view(request):
             totp_ok = False
             email_ok = False
 
-            # Kiểm tra OTP TOTP
             if user.otp_secret:
                 totp_ok = verify_totp(
                     user.otp_secret,
                     code,
-                    period=config.otp_period,    # <--- Sửa thành config.otp_period
+                    period=config.otp_period,
                     digits=config.otp_digits,
                     algo="SHA1",
                     window=1
                 )
 
-            # Kiểm tra OTP gửi qua email
             email_otp_code = request.session.get('email_otp_code')
             email_otp_expiry = request.session.get('email_otp_expiry', 0)
 
@@ -362,7 +310,6 @@ def otp_verify_view(request):
                 request.session.pop('email_otp_expiry', None)
 
             if totp_ok or email_ok:
-                # Reset đếm sai và trạng thái khóa
                 user.failed_otp_attempts = 0
                 user.otp_locked = False
                 user.save()
@@ -377,11 +324,9 @@ def otp_verify_view(request):
 
                 return _perform_login(request, user, remember_me)
             else:
-                # Sai OTP
                 user.failed_otp_attempts += 1
                 note_msg = f"Nhập sai OTP lần thứ {user.failed_otp_attempts}"
 
-                # Khóa nếu vượt ngưỡng
                 if user.failed_otp_attempts >= config.lockout_threshold:
                     user.otp_locked = True
                     note_msg += " -> TÀI KHOẢN BỊ KHÓA OTP"
@@ -401,14 +346,9 @@ def otp_verify_view(request):
         }
     )
 
-
-# Email vẫn dùng key theo IP (get_client_ip) để chặn spam từ một máy
-@ratelimit(key=ip_key_wrapper, rate='2/m', block=True) # Tăng rate limit lên chút vì phải load form
+# Gui ma OTP qua email cho nguoi dung
+@ratelimit(key=ip_key_wrapper, rate='2/m', block=True)
 def send_email_otp_view(request):
-    """
-    Bước 1: Hiện form yêu cầu nhập Email.
-    Bước 2: Nếu Email khớp -> Gửi OTP.
-    """
     user_id = request.session.get("pre_2fa_user_id")
     if not user_id:
         return redirect("accounts:login")
@@ -416,7 +356,6 @@ def send_email_otp_view(request):
     user = get_object_or_404(User, pk=user_id)
     config = SecurityConfig.get_solo()
 
-    # Kiểm tra cấu hình hệ thống và user
     if not config.allow_email_otp_system:
         messages.error(request, "Tính năng OTP qua Email đang bị TẮT trên toàn hệ thống.")
         return redirect("accounts:otp_verify")
@@ -425,15 +364,10 @@ def send_email_otp_view(request):
         messages.error(request, "Tài khoản của bạn không được phép nhận mã qua Email.")
         return redirect("accounts:otp_verify")
 
-    # Xử lý Form
     if request.method == "POST":
-        # Truyền user.email vào form để validate
         form = EmailConfirmationForm(request.POST, user_email=user.email)
         
         if form.is_valid():
-            # --- Logic Gửi Mail (Giống cũ) ---
-            
-            # Rate limit thời gian gửi (60s)
             last_sent = request.session.get('last_email_otp_sent', 0)
             if time.time() - last_sent < 60:
                 messages.warning(request, "Vui lòng đợi 60 giây trước khi gửi lại mã.")
@@ -459,7 +393,6 @@ def send_email_otp_view(request):
                 record_security_event(user, "EMAIL_OTP_SENT", request=request, note="Đã xác thực email chính chủ trước khi gửi")
                 messages.success(request, f"Đã gửi mã OTP đến email {user.email}.")
                 
-                # Gửi xong thì chuyển về trang nhập OTP
                 return redirect("accounts:otp_verify")
                 
             except Exception as e:
@@ -473,46 +406,9 @@ def send_email_otp_view(request):
         "username": user.username
     })
 
-    # Chặn gửi liên tục trong vòng 60 giây
-    last_sent = request.session.get('last_email_otp_sent', 0)
-    if time.time() - last_sent < 60:
-        messages.warning(request, "Vui lòng đợi 60 giây trước khi gửi lại mã.")
-        return redirect("accounts:otp_verify")
-
-    # Tạo mã 6 chữ số ngẫu nhiên
-    code = str(secrets.randbelow(900000) + 100000)
-
-    # Lưu vào session để kiểm tra
-    request.session['email_otp_code'] = code
-    request.session['email_otp_expiry'] = int(time.time()) + 300  # 5 phút
-    request.session['last_email_otp_sent'] = int(time.time())
-
-    try:
-        subject = f"Mã xác thực 2FA - {getattr(settings, 'SITE_NAME', 'TwoFA Demo')}"
-        message = (
-            f"Mã xác thực 2FA của bạn là: {code}\n\n"
-            f"Mã này có hiệu lực trong 5 phút.\n"
-        )
-        send_mail(
-            subject,
-            message,
-            getattr(settings, "DEFAULT_FROM_EMAIL", None),
-            [user.email],
-            fail_silently=False
-        )
-
-        record_security_event(user, "EMAIL_OTP_SENT", request=request)
-        messages.success(request, f"Đã gửi mã OTP đến email {user.email}.")
-    except Exception as e:
-        messages.error(request, f"Lỗi khi gửi email: {e}")
-
-    return redirect("accounts:otp_verify")
-
-
-# Dùng key=get_ratelimit_key cho xác thực mã khôi phục
+# Xac thuc bang ma du phong khi mat thiet bi OTP
 @ratelimit(key=get_ratelimit_key, rate='10/m', block=True)
 def backup_code_verify_view(request):
-    """View nhập mã khôi phục (backup code) để đăng nhập khi mất OTP."""
     user_id = request.session.get("pre_2fa_user_id")
     if not user_id:
         return redirect("accounts:login")
@@ -570,13 +466,11 @@ def backup_code_verify_view(request):
         {"form": form, "username": user.username}
     )
 
-
+# Bat tinh nang xac thuc 2 lop va hien thi ma QR
 @login_required
 def enable_2fa_view(request):
-    """View bật 2FA: sinh secret, hiển thị QR, yêu cầu nhập OTP để xác nhận."""
     user = request.user
     config = SecurityConfig.get_solo()
-    # Nếu chưa có secret thì sinh mới
     if not user.otp_secret:
         user.otp_secret = generate_base32_secret()
         user.save()
@@ -586,7 +480,7 @@ def enable_2fa_view(request):
         issuer_name=getattr(settings, "SITE_NAME", "TwoFA Demo"),
         secret_b32=user.otp_secret,
         algo="SHA1",
-        digits=config.otp_digits,       # <--- Sửa thành config.otp_digits
+        digits=config.otp_digits,
         period=config.otp_period,
     )
     qr_b64 = qr_code_base64(otp_uri)
@@ -598,7 +492,7 @@ def enable_2fa_view(request):
             ok = verify_totp(
                 user.otp_secret,
                 code,
-                digits=config.otp_digits,       # <--- Sửa thành config.otp_digits
+                digits=config.otp_digits,
                 period=config.otp_period,
                 algo="SHA1",
                 window=1
@@ -618,7 +512,6 @@ def enable_2fa_view(request):
                     note="Người dùng bật 2FA (TOTP)"
                 )
 
-                # Sinh mã khôi phục dạng plaintext và lưu tạm vào session để hiển thị 1 lần
                 plaintext_codes = user.generate_backup_codes()
                 request.session['backup_codes'] = plaintext_codes
 
@@ -645,10 +538,9 @@ def enable_2fa_view(request):
         },
     )
 
-
+# Hien thi danh sach ma du phong sau khi bat 2FA
 @login_required
 def enable_2fa_complete_view(request):
-    """Hiển thị danh sách mã khôi phục sau khi bật 2FA lần đầu."""
     backup_codes = request.session.pop('backup_codes', None)
     if not backup_codes:
         return redirect("accounts:dashboard")
@@ -659,12 +551,10 @@ def enable_2fa_complete_view(request):
         {"backup_codes": backup_codes}
     )
 
-
-# Đổi mật khẩu, có giới hạn tần suất theo IP + username
+# Cho phep nguoi dung tu doi mat khau
 @login_required
 @ratelimit(key=get_ratelimit_key, rate='10/m', block=True)
 def change_password_view(request):
-    """Cho phép người dùng tự đổi mật khẩu của chính mình."""
     user = request.user
     if request.method == "POST":
         form = ChangePasswordForm(user, request.POST)
@@ -681,17 +571,15 @@ def change_password_view(request):
                 note="Người dùng tự đổi mật khẩu"
             )
 
-            # Sau khi đổi mật khẩu, đăng nhập lại
             login(request, user)
             return redirect("accounts:dashboard")
     else:
         form = ChangePasswordForm(user)
     return render(request, "accounts/change_password.html", {"form": form})
 
-
+# Trang tong quan tai khoan va trang thai bao mat
 @login_required
 def dashboard_view(request):
-    """Trang tổng quan tài khoản: trạng thái 2FA, email, khóa OTP, v.v."""
     u = request.user
     if u.must_setup_2fa and not u.is_2fa_enabled:
         return redirect("accounts:enable_2fa")
@@ -709,26 +597,23 @@ def dashboard_view(request):
     }
     return render(request, "accounts/dashboard.html", {"security_info": security_info})
 
-
+# Dang xuat va xoa trang thai thiet bi tin cay
 def logout_view(request):
-    """Đăng xuất, đồng thời xóa trạng thái thiết bị tin cậy."""
     request.session.pop('2fa_trusted', None)
     request.session.pop('2fa_trusted_user_id', None)
     logout(request)
     return redirect("forum:home")
 
-
+# Trang danh rieng cho nhan vien noi bo
 @login_required
 def staff_only_view(request):
-    """View chỉ dành cho tài khoản có vai trò STAFF."""
     if not request.user.is_staff_role():
         return HttpResponseForbidden("Bạn không có quyền STAFF.")
     return render(request, "accounts/dashboard.html", {"staff": True})
 
-
+# Chinh sua thong tin ho so ca nhan
 @login_required
 def profile_edit_view(request):
-    """Chỉnh sửa hồ sơ cá nhân (thông tin, avatar...)."""
     if request.method == "POST":
         form = ProfileEditForm(request.POST, request.FILES, instance=request.user)
         if form.is_valid():
@@ -740,9 +625,8 @@ def profile_edit_view(request):
 
     return render(request, "accounts/profile_edit.html", {"form": form})
 
-
+# Xem chi tiet ho so va bai viet cua nguoi dung
 def profile_view(request, pk):
-    """Xem trang hồ sơ cá nhân và bài viết của một người dùng."""
     profile_user = get_object_or_404(User, pk=pk)
 
     post_list = profile_user.post_set.all().order_by("-created_at")
@@ -756,8 +640,7 @@ def profile_view(request, pk):
     }
     return render(request, "accounts/profile_view.html", context)
 
-
-# Tắt 2FA – có giới hạn tần suất
+# Tat tinh nang xac thuc 2 lop bang ma du phong
 @login_required
 def disable_2fa_view(request):
     user = request.user
@@ -767,23 +650,16 @@ def disable_2fa_view(request):
     if request.method == "POST":
         form = Disable2FAForm(user, request.POST)
         if form.is_valid():
-            # [SỬA LỖI TẠI ĐÂY] Lấy 'backup_code' thay vì 'otp_code'
             code_input = form.cleaned_data["backup_code"]
             
-            # Kiểm tra mã dự phòng
             if user.verify_backup_code(code_input):
-                # Tắt 2FA
                 user.is_2fa_enabled = False
                 user.otp_secret = None
                 user.must_setup_2fa = False
                 user.save()
                 
-                # Xóa mã dự phòng cũ
                 BackupCode.objects.filter(user=user).delete()
 
-                # Ghi log (Nếu bạn có hàm này)
-                # record_security_event(user, "DISABLE_2FA", request=request, note="Dùng mã dự phòng")
-                
                 messages.success(request, "Đã tắt xác thực 2 lớp thành công.")
                 request.session.pop('2fa_trusted', None)
                 return redirect("accounts:dashboard")
@@ -794,16 +670,12 @@ def disable_2fa_view(request):
 
     return render(request, "accounts/disable_2fa.html", {"form": form})
 
-
+# Trang thong bao loi khi vuot qua gioi han truy cap
 def ratelimited_error_view(request, exception=None):
-    """Trang hiển thị khi người dùng bị chặn do vượt giới hạn ratelimit."""
     return render(request, 'ratelimited.html', status=403)
 
-
+# Rut gon chuoi User-Agent thanh ten trinh duyet de doc
 def _simplify_user_agent(ua_string):
-    """
-    Rút gọn chuỗi User-Agent thành dạng dễ đọc, gom nhóm theo hệ điều hành + trình duyệt.
-    """
     if not ua_string or ua_string == "Unknown":
         return "Không xác định"
 
@@ -835,54 +707,38 @@ def _simplify_user_agent(ua_string):
 
     return f"{os} ({browser})"
 
-
+# Trang tong quan bao mat danh cho quan tri vien
 @login_required
 def security_dashboard_view(request):
-    """
-    Trang tổng quan bảo mật cho STAFF:
-    - Thống kê 2FA, số lần sai OTP, tài khoản bị khóa,
-    - Biểu đồ sai OTP 7 ngày gần đây,
-    - Top thiết bị đăng nhập (User-Agent đã rút gọn).
-    """
     if not request.user.is_staff_role():
         return HttpResponseForbidden("Bạn không có quyền truy cập.")
 
-    # 1. Các chỉ số tổng quan
     total_users = User.objects.count()
     users_2fa_on = User.objects.filter(is_2fa_enabled=True).count()
     users_2fa_off = total_users - users_2fa_on
     otp_locked_count = User.objects.filter(otp_locked=True).count()
     total_otp_fails = SecurityLog.objects.filter(event_type='OTP_FAIL').count()
 
-    # 2. Xử lý biểu đồ "Số lần nhập sai OTP (7 ngày qua)"
-    # Cách mới: tính toán bằng Python để tránh lỗi timezone / giá trị null
-
     last_7_days = timezone.now() - timedelta(days=7)
 
-    # Lấy dữ liệu thô từ DB
     logs = SecurityLog.objects.filter(event_type='OTP_FAIL', created_at__gte=last_7_days)
 
-    # Gom nhóm số lần nhập sai theo ngày (dạng dd/mm)
     data_map = defaultdict(int)
 
     for log in logs:
-        # Chuyển về giờ Việt Nam rồi mới lấy ngày
         local_date = timezone.localtime(log.created_at).date()
         date_str = local_date.strftime('%d/%m')
         data_map[date_str] += 1
 
-    # Tạo list dữ liệu cho biểu đồ (đảm bảo đủ 7 ngày liên tiếp)
     chart_dates = []
     chart_counts = []
 
     for i in range(6, -1, -1):
         d = timezone.now() - timedelta(days=i)
-        d_str = d.strftime('%d/%m')  # Ví dụ: 20/12
+        d_str = d.strftime('%d/%m')
 
         chart_dates.append(d_str)
         chart_counts.append(data_map.get(d_str, 0))
-
-    # 3. Thống kê Top thiết bị (User-Agent) đăng nhập nhiều nhất
 
     ua_list = SecurityLog.objects.filter(event_type='LOGIN_SUCCESS').values_list('user_agent', flat=True)
 
@@ -891,13 +747,11 @@ def security_dashboard_view(request):
     for ua in ua_list:
         clean_name = _simplify_user_agent(ua)
 
-        # Bỏ qua các log không xác định để bảng đẹp hơn
         if clean_name == "Không xác định":
             continue
 
         device_counter[clean_name] += 1
 
-    # Lấy Top 5 thiết bị
     top_devices = []
     for name, count in device_counter.most_common(5):
         top_devices.append({
@@ -916,49 +770,24 @@ def security_dashboard_view(request):
         "top_devices": top_devices,
     }
     return render(request, "accounts/security_dashboard.html", context)
-def _set_session_expiry(request, remember_me: bool):
-    """Thiết lập thời hạn session (ghi nhớ đăng nhập hoặc chỉ cho tới khi đóng trình duyệt)."""
-    if remember_me:
-        # Defaults to 30 days (2592000) if not set in settings, 
-        # BUT you set it to 86400 (1 day) in your settings.py
-        expiry_seconds = getattr(settings, "SESSION_COOKIE_AGE", 2592000) 
-        request.session.set_expiry(expiry_seconds)
-    else:
-        # 0 = expires on browser close
-        request.session.set_expiry(0)
-        
-def logout_all_devices(user):
-    # Lấy tất cả session còn hạn
-    all_sessions = Session.objects.filter(expire_date__gte=timezone.now())
-    
-    for session in all_sessions:
-        data = session.get_decoded()
-        # Kiểm tra xem session này có phải của user đang xét không
-        if str(user.id) == str(data.get('_auth_user_id')):
-            session.delete() # Xóa session -> User bị đá văng ra ngay lập tức
-            
-# --- LOGIC ĐĂNG XUẤT TỪ XA ---
 
+# Xoa tat ca phien dang nhap cua nguoi dung khoi database
 def logout_all_devices_logic(user):
-    """Hàm phụ trợ: Xóa tất cả session của user trong database."""
-    # Lấy tất cả session chưa hết hạn
     all_sessions = Session.objects.filter(expire_date__gte=timezone.now())
     
     deleted_count = 0
     for session in all_sessions:
         data = session.get_decoded()
-        # So khớp ID người dùng trong session với user hiện tại
         if str(user.id) == str(data.get('_auth_user_id')):
             session.delete()
             deleted_count += 1
     return deleted_count
 
+# Xu ly dang xuat khoi tat ca thiet bi
 @login_required
 def logout_all_view(request):
-    """View: Xử lý khi người dùng bấm nút đăng xuất tất cả."""
     count = logout_all_devices_logic(request.user)
     
-    # Logout luôn session hiện tại cho sạch sẽ
     logout(request)
     
     messages.success(request, f"Đã đăng xuất thành công khỏi {count} thiết bị/phiên đăng nhập!")

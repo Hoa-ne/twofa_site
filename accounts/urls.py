@@ -7,11 +7,11 @@ from django_ratelimit.decorators import ratelimit
 app_name = "accounts"
 
 urlpatterns = [
-    # Đăng ký + kích hoạt email
+    # Dang ky tai khoan moi va kich hoat qua email
     path("register/", views.register_view, name="register"),
     path("activate/<uidb64>/<token>/", views.activate_email_view, name="activate"),
 
-    # Đăng nhập / đăng xuất / OTP / bật 2FA
+    # Quan ly dang nhap, dang xuat va cac chuc nang OTP
     path("login/", views.login_view, name="login"),
     path("logout/", views.logout_view, name="logout"),
     path("security/logout-all/", views.logout_all_view, name="logout_all"),
@@ -19,21 +19,21 @@ urlpatterns = [
     path("otp/send-email/", views.send_email_otp_view, name="send_email_otp"),
     path("otp/backup/", views.backup_code_verify_view, name="backup_code_verify"),
     
+    # Thiet lap bat hoac tat tinh nang bao mat 2 lop
     path("enable-2fa/", views.enable_2fa_view, name="enable_2fa"),
     path("enable-2fa/complete/", views.enable_2fa_complete_view, name="enable_2fa_complete"),
-    # THÊM MỚI URL NÀY
     path("disable-2fa/", views.disable_2fa_view, name="disable_2fa"),
 
-    # Ép đổi mật khẩu sau sự cố bảo mật
+    # Thay doi mat khau nguoi dung
     path("change-password/", views.change_password_view, name="change_password"),
 
-    # Dashboard người dùng
+    # Trang bang dieu khien chinh cho nguoi dung
     path("dashboard/", views.dashboard_view, name="dashboard"),
 
-    # Khu vực staff/admin
+    # Khu vuc danh rieng cho nhan vien noi bo
     path("staff-area/", views.staff_only_view, name="staff_only"),
 
-    # --- Password reset flow ---
+    # Quy trinh khoi phuc mat khau khi quen (co gioi han request)
     path(
         "password-reset/",
         ratelimit(key='ip', rate='2/m', block=True)
@@ -68,9 +68,8 @@ urlpatterns = [
         ),
         name="password_reset_complete",
     ),
-    path("dashboard/", views.dashboard_view, name="dashboard"),
-
-    # URLS CHO PROFILE
+    
+    # Quan ly ho so ca nhan va tong quan bao mat
     path("profile/edit/", views.profile_edit_view, name="profile_edit"),
     path('profile/<int:pk>/', views.profile_view, name='profile_view'),
     path("security-dashboard/", views.security_dashboard_view, name="security_dashboard"),

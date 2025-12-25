@@ -3,10 +3,10 @@ from django.db import models
 from django.utils import timezone
 from django.conf import settings
 from django.contrib.auth.hashers import make_password, check_password
-# Import thư viện mã hóa
 from cryptography.fernet import Fernet
 import secrets
 
+# Mo hinh nguoi dung tuy chinh ke thua tu AbstractUser cua Django
 class User(AbstractUser):
     ROLE_CHOICES = (
         ("ADMIN", "Admin"),
@@ -17,20 +17,15 @@ class User(AbstractUser):
     avatar = models.ImageField(upload_to="avatars/", null=True, blank=True, default="avatars/default.png", verbose_name="Ảnh đại diện")
     bio = models.TextField(blank=True, null=True, help_text="Giới thiệu ngắn về bạn", verbose_name="Tiểu sử")
     
-    # --- PHẦN NICKNAME (Giữ nguyên) ---
     nickname = models.CharField(max_length=50, blank=True, null=True, verbose_name="Biệt danh hiển thị")
     allow_email_otp = models.BooleanField(
         default=True, 
         verbose_name="Cho phép nhận OTP qua Email",
         help_text="Nếu bỏ chọn: User chỉ được dùng App Authenticator, không được bấm nút 'Gửi qua Email'."
     )
+
+    # Xac dinh ten hien thi uu tien theo thu tu: nickname -> ho ten -> ID thanh vien
     def get_display_name(self):
-        """
-        Thứ tự ưu tiên hiển thị:
-        1. Nickname
-        2. Họ tên
-        3. Thành viên số [ID]
-        """
         if self.nickname:
             return self.nickname
         
@@ -40,15 +35,10 @@ class User(AbstractUser):
         
         return f"Thành viên số {self.pk}"
     
-    # Các trường cơ bản khác
     email = models.EmailField("Địa chỉ Email", unique=True) 
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default="USER", verbose_name="Vai trò")
     email_verified = models.BooleanField(default=False, verbose_name="Đã xác thực Email")
 
-    # --- [SỬA ĐỔI QUAN TRỌNG] PHẦN BẢO MẬT OTP ---
-    
-    # 1. Đổi tên trường lưu trữ thành 'encrypted_otp_secret'
-    # Tăng độ dài lên 255 để chứa chuỗi mã hóa
     encrypted_otp_secret = models.CharField(
         max_length=255, 
         blank=True, 
@@ -58,39 +48,29 @@ class User(AbstractUser):
     
     is_2fa_enabled = models.BooleanField(default=False, verbose_name="Đã bật 2FA")
 
-    # 2. Tạo thuộc tính ảo 'otp_secret' để tự động Mã hóa / Giải mã
     @property
+    # Tu dong giai ma OTP secret khi duoc truy xuat
     def otp_secret(self):
-        """
-        Khi code gọi user.otp_secret: Tự động giải mã từ encrypted_otp_secret
-        """
         if not self.encrypted_otp_secret:
             return None
         try:
-            # Lấy key từ settings (đã cấu hình từ .env)
             key = settings.OTP_ENCRYPTION_KEY.encode()
             f = Fernet(key)
-            # Giải mã
             decrypted_data = f.decrypt(self.encrypted_otp_secret.encode())
             return decrypted_data.decode()
         except Exception:
             return None
 
     @otp_secret.setter
+    # Tu dong ma hoa OTP secret truoc khi luu vao co so du lieu
     def otp_secret(self, value):
-        """
-        Khi code gán user.otp_secret = "abc": Tự động mã hóa rồi lưu vào encrypted_otp_secret
-        """
         if value:
             key = settings.OTP_ENCRYPTION_KEY.encode()
             f = Fernet(key)
-            # Mã hóa
             encrypted_data = f.encrypt(value.encode())
             self.encrypted_otp_secret = encrypted_data.decode()
         else:
             self.encrypted_otp_secret = None
-
-    # ---------------------------------------------
 
     must_setup_2fa = models.BooleanField(
         default=True,
@@ -112,14 +92,16 @@ class User(AbstractUser):
         help_text="Nếu chọn: Người dùng sẽ bị chuyển sang trang đổi mật khẩu ở lần đăng nhập tới."
     )
 
+    # Kiem tra nguoi dung co phai la quan tri vien khong
     def is_admin(self):
         return self.role == "ADMIN"
 
+    # Kiem tra nguoi dung co thuoc nhom nhan vien quan ly khong
     def is_staff_role(self):
         return self.role in ["ADMIN", "STAFF"]
     
+    # Tao moi danh sach ma du phong va luu duoi dang ma hoa hash
     def generate_backup_codes(self):
-        # Xóa các mã cũ
         BackupCode.objects.filter(user=self).delete()
         
         plaintext_codes = []
@@ -136,6 +118,7 @@ class User(AbstractUser):
         BackupCode.objects.bulk_create(codes_to_create)
         return plaintext_codes
 
+    # Kiem tra ma du phong nguoi dung nhap vao co hop le va chua su dung khong
     def verify_backup_code(self, code: str) -> bool:
         unused_codes = BackupCode.objects.filter(user=self, is_used=False)
         for backup_code in unused_codes:
@@ -150,6 +133,7 @@ class User(AbstractUser):
         verbose_name_plural = "Danh sách người dùng"
 
 
+# Mo hinh luu tru chinh sach bao mat chung cua he thong
 class SecurityPolicy(models.Model):
     require_2fa_for_new_users = models.BooleanField(
         default=True,
@@ -159,6 +143,7 @@ class SecurityPolicy(models.Model):
 
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Cập nhật lần cuối")
 
+    # Tra ve ten hien thi dai dien cho chinh sach bao mat
     def __str__(self):
         return "Chính sách bảo mật hệ thống"
     
@@ -167,6 +152,7 @@ class SecurityPolicy(models.Model):
         verbose_name_plural = "Chính sách bảo mật"
 
 
+# Mo hinh ghi lai nhat ky cac su kien lien quan den bao mat
 class SecurityLog(models.Model):
     EVENT_CHOICES = (
         ("LOGIN_SUCCESS", "LOGIN_SUCCESS"),
@@ -189,6 +175,7 @@ class SecurityLog(models.Model):
     note = models.TextField(blank=True, verbose_name="Ghi chú")
     created_at = models.DateTimeField(default=timezone.now, verbose_name="Thời gian")
 
+    # Tra ve chuoi mo ta ngan gon ve su kien bao mat
     def __str__(self):
         who = self.user.username if self.user else "unknown-user"
         return f"{self.created_at} {who} {self.event_type}"
@@ -198,8 +185,7 @@ class SecurityLog(models.Model):
         verbose_name_plural = "Nhật ký bảo mật"
 
 
-# accounts/models.py
-
+# Mo hinh cau hinh cac thong so bao mat cho toan he thong
 class SecurityConfig(models.Model):
     id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
     
@@ -219,14 +205,12 @@ class SecurityConfig(models.Model):
         help_text="Bắt buộc người dùng thường phải bật 2FA"
     )
 
-    # --- Cấu hình OTP Email toàn hệ thống ---
     allow_email_otp_system = models.BooleanField(
         default=True,
         verbose_name="Cho phép OTP qua Email (Toàn hệ thống)",
         help_text="Nếu tắt: Không ai được dùng Email để nhận OTP, bắt buộc dùng App (Google Auth)."
     )
 
-    # --- [SỬA ĐỔI] Thêm choices cho độ dài OTP ---
     OTP_DIGITS_CHOICES = (
         (6, "6 chữ số "),
         (8, "8 chữ số "),
@@ -235,20 +219,23 @@ class SecurityConfig(models.Model):
     otp_digits = models.PositiveSmallIntegerField(
         default=6, 
         verbose_name="Độ dài OTP",
-        choices=OTP_DIGITS_CHOICES  # <--- Thêm dòng này để tạo menu chọn
+        choices=OTP_DIGITS_CHOICES
     )
     
     otp_period = models.PositiveSmallIntegerField(default=30, verbose_name="Chu kỳ OTP (giây)")
     lockout_threshold = models.PositiveSmallIntegerField(default=5, verbose_name="Ngưỡng khóa (lần sai)", help_text="Sai OTP tối đa trước khi khoá")
 
+    # Tra ve ten mac dinh cua cau hinh bao mat
     def __str__(self):
         return "Cấu hình bảo mật "
 
+    # Dam bao chi co mot ban ghi cau hinh duy nhat luon co ID la 1
     def save(self, *args, **kwargs):
         self.id = 1 
         super().save(*args, **kwargs)
 
     @classmethod
+    # Lay ra doi tuong cau hinh duy nhat cua he thong
     def get_solo(cls):
         obj, _ = cls.objects.get_or_create(id=1)
         return obj
@@ -258,12 +245,14 @@ class SecurityConfig(models.Model):
         verbose_name_plural = "Cấu hình bảo mật"
 
 
+# Mo hinh luu tru ma du phong cho nguoi dung duoi dang hash
 class BackupCode(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="backup_codes", verbose_name="Người dùng")
     code_hash = models.CharField(max_length=128, help_text="Mã khôi phục đã được hash", verbose_name="Mã Hash")
     is_used = models.BooleanField(default=False, verbose_name="Đã sử dụng")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Ngày tạo")
 
+    # Tra ve thong tin tom tat cua ma du phong
     def __str__(self):
         return f"Backup code for {self.user.username} (Used: {self.is_used})"
     
