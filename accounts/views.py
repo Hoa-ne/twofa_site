@@ -35,6 +35,7 @@ import time
 import secrets
 import hmac
 from .models import User, SecurityConfig, BackupCode, SecurityLog
+from django.contrib.sessions.models import Session
 
 # --- 1. HÀM LẤY IP THỰC TẾ CỦA CLIENT ---
 
@@ -402,7 +403,7 @@ def otp_verify_view(request):
 
 
 # Email vẫn dùng key theo IP (get_client_ip) để chặn spam từ một máy
-@ratelimit(key=ip_key_wrapper, rate='5/m', block=True) # Tăng rate limit lên chút vì phải load form
+@ratelimit(key=ip_key_wrapper, rate='2/m', block=True) # Tăng rate limit lên chút vì phải load form
 def send_email_otp_view(request):
     """
     Bước 1: Hiện form yêu cầu nhập Email.
@@ -761,7 +762,7 @@ def profile_view(request, pk):
 def disable_2fa_view(request):
     user = request.user
     if not user.is_2fa_enabled:
-        return redirect("accounts:dashboard)
+        return redirect("accounts:dashboard")
 
     if request.method == "POST":
         form = Disable2FAForm(user, request.POST)
@@ -925,3 +926,40 @@ def _set_session_expiry(request, remember_me: bool):
     else:
         # 0 = expires on browser close
         request.session.set_expiry(0)
+        
+def logout_all_devices(user):
+    # Lấy tất cả session còn hạn
+    all_sessions = Session.objects.filter(expire_date__gte=timezone.now())
+    
+    for session in all_sessions:
+        data = session.get_decoded()
+        # Kiểm tra xem session này có phải của user đang xét không
+        if str(user.id) == str(data.get('_auth_user_id')):
+            session.delete() # Xóa session -> User bị đá văng ra ngay lập tức
+            
+# --- LOGIC ĐĂNG XUẤT TỪ XA ---
+
+def logout_all_devices_logic(user):
+    """Hàm phụ trợ: Xóa tất cả session của user trong database."""
+    # Lấy tất cả session chưa hết hạn
+    all_sessions = Session.objects.filter(expire_date__gte=timezone.now())
+    
+    deleted_count = 0
+    for session in all_sessions:
+        data = session.get_decoded()
+        # So khớp ID người dùng trong session với user hiện tại
+        if str(user.id) == str(data.get('_auth_user_id')):
+            session.delete()
+            deleted_count += 1
+    return deleted_count
+
+@login_required
+def logout_all_view(request):
+    """View: Xử lý khi người dùng bấm nút đăng xuất tất cả."""
+    count = logout_all_devices_logic(request.user)
+    
+    # Logout luôn session hiện tại cho sạch sẽ
+    logout(request)
+    
+    messages.success(request, f"Đã đăng xuất thành công khỏi {count} thiết bị/phiên đăng nhập!")
+    return redirect("accounts:login")

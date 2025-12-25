@@ -7,7 +7,7 @@ from .models import User, SecurityPolicy, SecurityLog, BackupCode, SecurityConfi
 from .otp_algo import generate_base32_secret as create_otp_secret
 from .forms import UserAdminCreationForm, UserAdminChangeForm
 
-# --- HÀM GHI LOG HỆ THỐNG ---
+
 def log_admin_action(request, user, event_type, note=""):
     SecurityLog.objects.create(
         user=user,
@@ -25,12 +25,12 @@ def enable_email_otp(modeladmin, request, queryset):
 def disable_email_otp(modeladmin, request, queryset):
     updated = queryset.update(allow_email_otp=False)
     messages.success(request, f"Đã chặn OTP Email của {updated} người dùng.")
-# --- CÁC HÀNH ĐỘNG (ACTIONS) CHO USER ---
+
 @admin.action(description="Reset mã OTP & Yêu cầu cài đặt lại")
 def reset_otp_secret(modeladmin, request, queryset):
     count = 0
     for user in queryset:
-        # Nhờ setter @property, dòng này sẽ tự động mã hóa lưu vào encrypted_otp_secret
+        
         user.otp_secret = create_otp_secret()
         user.is_2fa_enabled = False
         user.must_setup_2fa = True
@@ -87,7 +87,7 @@ def clear_password_reset_flag(modeladmin, request, queryset):
     updated = queryset.update(must_change_password=False)
     messages.success(request, f"Đã hủy yêu cầu đổi mật khẩu cho {updated} người dùng.")
 
-# --- QUẢN LÝ NGƯỜI DÙNG (USER) ---
+
 @admin.register(User)
 class UserAdmin(DjangoUserAdmin):
     form = UserAdminChangeForm
@@ -95,13 +95,13 @@ class UserAdmin(DjangoUserAdmin):
 
     list_display = (
         "get_username", "get_email", "get_role", "get_email_verified",
-        "get_is_2fa_enabled", "allow_email_otp", "get_otp_locked", # <--- Thêm vào đây
+        "get_is_2fa_enabled", "allow_email_otp", "get_otp_locked", 
         "get_is_staff", "get_is_superuser"
     )
 
     list_filter = (
         "role", "email_verified", "is_2fa_enabled",
-        "allow_email_otp", # <--- Thêm bộ lọc để lọc ra ai bị chặn
+        "allow_email_otp", 
         "otp_locked", "is_staff", "is_superuser", "is_active",
     )
 
@@ -112,10 +112,10 @@ class UserAdmin(DjangoUserAdmin):
         reset_otp_secret, force_require_2fa, disable_require_2fa,
         disable_2fa, unlock_otp, force_password_reset,
         clear_password_reset_flag,
-        enable_email_otp, disable_email_otp # <--- Thêm mới vào cuối danh sách
+        enable_email_otp, disable_email_otp 
     ]
 
-    # --- VIỆT HÓA TIÊU ĐỀ CỘT ---
+    
     @admin.display(description="Tên đăng nhập", ordering="username")
     def get_username(self, obj):
         return obj.username
@@ -148,17 +148,13 @@ class UserAdmin(DjangoUserAdmin):
     def get_is_superuser(self, obj):
         return obj.is_superuser
 
-    # --- NÚT ĐỔI MẬT KHẨU ---
+    
     @admin.display(description="Mật khẩu")
     def link_doi_mat_khau(self, obj):
         if obj.pk:
             return format_html('<a class="button" href="../password/">Đổi mật khẩu</a>')
         return "-"
 
-    # --- CẤU HÌNH FIELDS (SỬA LẠI ĐỂ FIX LỖI) ---
-    
-    # [QUAN TRỌNG] Thêm otp_secret vào readonly_fields
-    # Django sẽ hiểu đây là property để hiển thị, chứ không phải field để sửa
     readonly_fields = ('link_doi_mat_khau',)
 
     fieldsets = (
@@ -193,7 +189,7 @@ class UserAdmin(DjangoUserAdmin):
         }),
     )
 
-# --- QUẢN LÝ CÁC MODEL KHÁC (GIỮ NGUYÊN) ---
+
 @admin.register(SecurityPolicy)
 class SecurityPolicyAdmin(admin.ModelAdmin):
     list_display = ("get_require_2fa", "get_updated_at")
@@ -237,7 +233,7 @@ class SecurityLogAdmin(admin.ModelAdmin):
 
     @admin.display(description="Sự kiện", ordering="event_type")
     def get_event(self, obj):
-        # Bảng dịch mã sang Tiếng Việt
+        
         translate = {
             "OTP_SUCCESS": " OTP thành công",
             "OTP_FAIL": " Nhập sai OTP",
@@ -250,7 +246,7 @@ class SecurityLogAdmin(admin.ModelAdmin):
             "RESET_OTP": "Admin Reset OTP",
             "FORCED_2FA": "Admin ép bật 2FA",
         }
-        # Nếu không có trong bảng dịch thì hiện mã gốc
+        #
         return translate.get(obj.event_type, obj.event_type)
 
     @admin.display(description="Địa chỉ IP", ordering="ip")
@@ -291,13 +287,13 @@ class BackupCodeAdmin(admin.ModelAdmin):
 
 @admin.register(SecurityConfig)
 class SecurityConfigAdmin(admin.ModelAdmin):
-    # 1. Hiển thị thông tin ra danh sách bên ngoài
+    
     list_display = ("__str__", "otp_digits", "otp_period", "allow_email_otp_system")
     
-    # 2. Gom nhóm và HIỂN THỊ CÁC TRƯỜNG CẦN SỬA
+    
     fieldsets = (
         ("Cấu hình OTP (Quan trọng)", {
-            # [QUAN TRỌNG] Phải khai báo tên trường ở đây thì mới hiện ra để sửa
+             
             "fields": ("otp_digits", "otp_period", "lockout_threshold") 
         }),
         ("Phân quyền Bắt buộc 2FA", {
@@ -310,7 +306,7 @@ class SecurityConfigAdmin(admin.ModelAdmin):
         }),
     )
 
-    # 3. Các hàm chặn thêm/xóa (Giữ nguyên để đảm bảo chỉ có 1 cấu hình)
+    
     def has_add_permission(self, request):
         if SecurityConfig.objects.exists():
             return False

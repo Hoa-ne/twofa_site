@@ -14,7 +14,7 @@ urlpatterns = [
     # Đăng nhập / đăng xuất / OTP / bật 2FA
     path("login/", views.login_view, name="login"),
     path("logout/", views.logout_view, name="logout"),
-    
+    path("security/logout-all/", views.logout_all_view, name="logout_all"),
     path("otp/", views.otp_verify_view, name="otp_verify"),
     path("otp/send-email/", views.send_email_otp_view, name="send_email_otp"),
     path("otp/backup/", views.backup_code_verify_view, name="backup_code_verify"),

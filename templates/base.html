@@ -6,6 +6,7 @@
     <title>{% block title %}TwoFA Site{% endblock %}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 <body class="{% block body_class %}{% endblock %}">
 
@@ -20,13 +21,34 @@
             <a href="{% url 'forum:home' %}">Diễn đàn</a>
 
             {% if request.user.is_authenticated %}
-                
-                <a href="{% url 'accounts:dashboard' %}">
-                    Tài khoản ({{ request.user.username }})
-                </a>
-                
+                <div class="user-dropdown">
+                    <a href="#" class="dropdown-toggle" style="font-weight: bold;">
+                        Xin chào, {{ request.user.username }} <i class="fas fa-caret-down"></i>
+                    </a>
+                    
+                    <div class="dropdown-menu">
+                        <a href="{% url 'accounts:dashboard' %}">
+                            <i class="fas fa-tachometer-alt" style="width: 20px;"></i> Dashboard
+                        </a>
+                        <a href="{% url 'accounts:profile_edit' %}">
+                            <i class="fas fa-user-edit" style="width: 20px;"></i> Sửa hồ sơ
+                        </a>
+                        <a href="{% url 'accounts:change_password' %}">
+                            <i class="fas fa-key" style="width: 20px;"></i> Đổi mật khẩu
+                        </a>
+                        
+                        <div class="dropdown-divider"></div>
 
-                <a class="btn-small-accent" href="{% url 'accounts:logout' %}">Đăng xuất</a>
+                        <a href="{% url 'accounts:logout_all' %}" 
+                           style="color: #ff4757; font-weight: bold;">
+                            <i class="fas fa-bomb" style="width: 20px;"></i> Đăng xuất tất cả trình duyệt
+                        </a>
+
+                        <a href="{% url 'accounts:logout' %}">
+                            <i class="fas fa-sign-out-alt" style="width: 20px;"></i> Đăng xuất trình duyệt này
+                        </a>
+                    </div>
+                </div>
             {% else %}
                 <a href="{% url 'accounts:register' %}">Đăng ký</a>
                 <a class="btn-small-accent" href="{% url 'accounts:login' %}">Đăng nhập</a>
@@ -50,19 +72,19 @@
             <p style="font-size: 13px; color: #777;">&copy; Thuộc KLCN_BM09</p>
         </div>
         <div class="footer-section">
-    <h4>Liên kết nhanh</h4>
-    <ul>
-        <li><a href="{% url 'forum:home' %}">Diễn đàn</a></li>
-        <li><a href="{% url 'forum:thread_create' %}">Tạo chủ đề</a></li>
-        {% if request.user.is_authenticated %}
-            <li><a href="{% url 'accounts:dashboard' %}">Tài khoản của tôi</a></li>
-        {% else %}
-            <li><a href="{% url 'accounts:login' %}">Đăng nhập</a></li>
-        {% endif %}
-        
-        <li><a href="{% url 'forum:contact' %}">Liên hệ </a></li>
-    </ul>
-</div>
+            <h4>Liên kết nhanh</h4>
+            <ul>
+                <li><a href="{% url 'forum:home' %}">Diễn đàn</a></li>
+                <li><a href="{% url 'forum:thread_create' %}">Tạo chủ đề</a></li>
+                {% if request.user.is_authenticated %}
+                    <li><a href="{% url 'accounts:dashboard' %}">Tài khoản của tôi</a></li>
+                {% else %}
+                    <li><a href="{% url 'accounts:login' %}">Đăng nhập</a></li>
+                {% endif %}
+                
+                <li><a href="{% url 'forum:contact' %}">Liên hệ </a></li>
+            </ul>
+        </div>
         <div class="footer-section">
             <h4>Tài khoản</h4>
             <ul>

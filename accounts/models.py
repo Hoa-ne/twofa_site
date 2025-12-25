@@ -210,8 +210,8 @@ class SecurityConfig(models.Model):
     )
     enforce_for_staff = models.BooleanField(
         default=False, 
-        verbose_name="Bắt buộc 2FA với Staff", 
-        help_text="Bắt buộc tài khoản nhân viên (Staff) phải bật 2FA"
+        verbose_name="Bắt buộc 2FA với NhanVien", 
+        help_text="Bắt buộc tài khoản nhân viên NhanVien phải bật 2FA"
     )
     enforce_for_user = models.BooleanField(
         default=False, 
@@ -228,8 +228,8 @@ class SecurityConfig(models.Model):
 
     # --- [SỬA ĐỔI] Thêm choices cho độ dài OTP ---
     OTP_DIGITS_CHOICES = (
-        (6, "6 chữ số (Tiêu chuẩn)"),
-        (8, "8 chữ số (Bảo mật cao)"),
+        (6, "6 chữ số "),
+        (8, "8 chữ số "),
     )
     
     otp_digits = models.PositiveSmallIntegerField(
@@ -242,7 +242,7 @@ class SecurityConfig(models.Model):
     lockout_threshold = models.PositiveSmallIntegerField(default=5, verbose_name="Ngưỡng khóa (lần sai)", help_text="Sai OTP tối đa trước khi khoá")
 
     def __str__(self):
-        return "Cấu hình bảo mật (Global)"
+        return "Cấu hình bảo mật "
 
     def save(self, *args, **kwargs):
         self.id = 1 
