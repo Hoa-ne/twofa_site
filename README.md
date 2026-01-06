@@ -167,7 +167,7 @@ twofa_site/
 
 ```bash
 # Clone repository
-git clone https://github.com/gachipper/twofa_site.git
+[git clone https://github.com/gachipper/twofa_site.git](https://github.com/Hoa-ne/twofa_site.git)
 cd twofa_site
 
 # Create virtual environment
